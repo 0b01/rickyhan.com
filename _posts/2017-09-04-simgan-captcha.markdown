@@ -350,7 +350,6 @@ import matplotlib.pyplot as plt
 imarr = get_image_batch(real_generator)[0, :, :, 0]
 plt.imshow(imarr)
 ```
-
 ![png](/static/imgs/output_25_1.png)
 
 

@@ -6,8 +6,8 @@
 </description>
     <link>http://rickyhan.com/</link>
     <atom:link href="http://rickyhan.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 05 Sep 2017 00:00:07 -0400</pubDate>
-    <lastBuildDate>Tue, 05 Sep 2017 00:00:07 -0400</lastBuildDate>
+    <pubDate>Tue, 05 Sep 2017 00:01:29 -0400</pubDate>
+    <lastBuildDate>Tue, 05 Sep 2017 00:01:29 -0400</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
     
       <item>
@@ -314,9 +314,8 @@ return img_batch ```
 import matplotlib.pyplot as plt
 imarr = get_image_batch(real_generator)[0, :, :, 0]
 plt.imshow(imarr)
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_25_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
+&lt;/code&gt;
+&lt;img src=&quot;/static/imgs/output_25_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
 imarr = get_image_batch(synth_generator())[0, :, :, 0]
