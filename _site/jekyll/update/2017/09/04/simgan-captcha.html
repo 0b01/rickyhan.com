@@ -366,10 +366,6 @@ imarr = get_image_batch(real_generator)[0, :, :, 0]
 plt.imshow(imarr)
 </code></p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>&lt;matplotlib.image.AxesImage at 0x7f160fda74d0&gt;
-</code></pre>
-</div>
-
 <p><img src="/static/imgs/output_25_1.png" alt="png" /></p>
 
 <p><code class="highlighter-rouge">python
@@ -379,12 +375,6 @@ plt.imshow(imarr)
 </code></p>
 
 <div class="highlighter-rouge"><pre class="highlight"><code>(50, 100)
-
-
-
-
-
-&lt;matplotlib.image.AxesImage at 0x7f160fdd4390&gt;
 </code></pre>
 </div>
 
@@ -754,19 +744,11 @@ arr = refiner_model.predict_on_batch(synthetic_image_batch)
 plt.imshow(arr[200, :, :, 0])
 </code></p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>&lt;matplotlib.image.AxesImage at 0x7f161417fa90&gt;
-</code></pre>
-</div>
-
 <p><img src="/static/imgs/output_38_1.png" alt="png" /></p>
 
 <p><code class="highlighter-rouge">python
 plt.imshow(get_image_batch(real_generator)[2,:,:,0])
 </code></p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>&lt;matplotlib.image.AxesImage at 0x7f1614381690&gt;
-</code></pre>
-</div>
 
 <p><img src="/static/imgs/output_39_1.png" alt="png" /></p>
 

@@ -6,8 +6,8 @@
 </description>
     <link>http://rickyhan.com/</link>
     <atom:link href="http://rickyhan.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 04 Sep 2017 23:43:07 -0400</pubDate>
-    <lastBuildDate>Mon, 04 Sep 2017 23:43:07 -0400</lastBuildDate>
+    <pubDate>Tue, 05 Sep 2017 00:00:07 -0400</pubDate>
+    <lastBuildDate>Tue, 05 Sep 2017 00:00:07 -0400</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
     
       <item>
@@ -316,10 +316,6 @@ imarr = get_image_batch(real_generator)[0, :, :, 0]
 plt.imshow(imarr)
 &lt;/code&gt;&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&amp;lt;matplotlib.image.AxesImage at 0x7f160fda74d0&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
 &lt;p&gt;&lt;img src=&quot;/static/imgs/output_25_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
@@ -329,12 +325,6 @@ plt.imshow(imarr)
 &lt;/code&gt;&lt;/p&gt;
 
 &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;(50, 100)
-
-
-
-
-
-&amp;lt;matplotlib.image.AxesImage at 0x7f160fdd4390&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
@@ -704,19 +694,11 @@ arr = refiner_model.predict_on_batch(synthetic_image_batch)
 plt.imshow(arr[200, :, :, 0])
 &lt;/code&gt;&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&amp;lt;matplotlib.image.AxesImage at 0x7f161417fa90&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
 &lt;p&gt;&lt;img src=&quot;/static/imgs/output_38_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
 plt.imshow(get_image_batch(real_generator)[2,:,:,0])
 &lt;/code&gt;&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&amp;lt;matplotlib.image.AxesImage at 0x7f1614381690&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
 
 &lt;p&gt;&lt;img src=&quot;/static/imgs/output_39_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 

@@ -351,14 +351,6 @@ imarr = get_image_batch(real_generator)[0, :, :, 0]
 plt.imshow(imarr)
 ```
 
-
-
-
-    <matplotlib.image.AxesImage at 0x7f160fda74d0>
-
-
-
-
 ![png](/static/imgs/output_25_1.png)
 
 
@@ -375,7 +367,6 @@ plt.imshow(imarr)
 
 
 
-    <matplotlib.image.AxesImage at 0x7f160fdd4390>
 
 
 
@@ -744,7 +735,6 @@ plt.imshow(arr[200, :, :, 0])
 
 
 
-    <matplotlib.image.AxesImage at 0x7f161417fa90>
 
 
 
@@ -760,7 +750,6 @@ plt.imshow(get_image_batch(real_generator)[2,:,:,0])
 
 
 
-    <matplotlib.image.AxesImage at 0x7f1614381690>
 
 
 
