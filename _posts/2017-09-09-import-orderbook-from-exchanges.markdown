@@ -42,9 +42,11 @@ The other prominent feature is the minimal API. It doesn't send the exact time a
 
 However, the techniques required to scale a live order book in real-time will be the same regardless of the intended use case. So while the strategies will be different from what we know as HFT, the systems in use will be very similar.
 
-## Why I Chose Bittrex
+
+# Why I Chose Bittrex
 
 The choice of Bittrex is straightforward since the prediction engine simulates how a human trader would place orders(albeit faster in execution). It is an **investor-friendly** exchange that has dozens of coins with relatively **high liquidity** and fewer HFT meddling with the order book.
+
 
 # Storing Limit Order Book Updates in DB
 
