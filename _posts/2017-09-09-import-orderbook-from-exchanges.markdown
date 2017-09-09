@@ -5,27 +5,26 @@ date:   2017-09-09 11:05:01 -0400
 categories: jekyll update
 ---
 
-I am really excited about my new project. It is a fairly sophisticated crypto trading bot built with TensorFlow. In the upcoming series of posts, I will share some details on how it was built. Unfortunately, since the bot is profitable, it will be operating in stealth mode and won't be open-sourced. However, the non-mission-critical parts will be. For example, I am currently porting visualization charts and interactive graphs into a module of its own. Expect pretty graphics soon.
+I am really excited about my new project. It is a fairly sophisticated crypto trading bot built with TensorFlow. In the upcoming series of posts, I will share some details on how it was built. Unfortunately, since the bot is profitable, it will be operating in stealth mode and won't be open-sourced. However, the non-mission-critical parts will be. For example, I am currently porting visualization charts and interactive graphs into a separate publishable module. Expect pretty graphics soon.
 
-The intention is to use this blog as a real-time lab report and tutorial for new quant enthusiasts. Financial demos are few and far between so I hope this will provide some value to you. This is the first post in the installment. In this post I'll show how to import limit order book updates into your own database for later use. A wise man once said, 99% of programming is moving a chunk of data from one place to another, transforming in the process. Order book update is no exception. Here, we listen to every limit order update emitted from the exchange's websocket and store it in a PostgreSQL database. Reconstructing an LOB is not covered.
+The intention is to use this blog as a real-time lab report and tutorial for new quant enthusiasts. Financial demos are few and far between so I hope this will provide some value. This is the first post in the installment. In this post we show how to import limit order book updates into your own database for later use. A wise man once said, 99% of programming is moving a chunk of data from one place to another, transforming it in the process. Order book update is no exception. Here, we listen to every limit order update emitted from the exchange's websocket and store it in a PostgreSQL database. Reconstructing an LOB is covered in the next post.
 
 # The State of Cryptocurrency Trading
 
 Cryptocurrency is the Wild West of trading. Pump and dump scams happen on an hourly basis. Even the higher capitalization markets experience huge price swings that can easily wipe out traditional investors. Market manipulation is the norm and behavior is irrational and counterintuitive. Some strategies can lock people away if executed in a regulated environment.
 
-Cryptocurrency is traded on digital exchanges to which access is universal as long as the trader has an Internet connection. High volatility and low barrier of entrance provide an enormous appeal to casual day traders who trade based on market sentiment almost entirely. As a result, there is a lot of "hype money" flowing around major cryptocurrency exchanges, which means cryptocurrency is fertile ground for pattern matching algorithm to flourish.
+Cryptocurrency is traded on digital exchanges to which access is universal as long as the trader has an Internet connection. High volatility and low barrier of entrance provide an enormous appeal to casual day traders who trade based entirely on market sentiment. As a result, there is "hype money" flowing around major cryptocurrency exchanges, which means cryptocurrency is fertile ground for pattern matching / statistical inference algorithms to flourish.
 
 ## Market Microstructure
 
-### Exchanges
 
-#### Presence of HFT
+### Presence of HFT
 
 The speed of cryptocurrency exchanges are 1000 times slower than that of stocks and futures. Of course, some exchanges are faster than others. The fastest, most advanced exchange as of September 2017 is Coinbase GDAX. However, it may not be the most friendly exchange to run your strategy. Most exchanges have millisecond time-scale resolution which means a lot of new HFT strategies are rendered useless. Modern HFT trading strategy requires microsecond resolution. However, there are plenty of market makers operating on a larger time-scale. The Ether Flash Crash only took 45 milliseconds, way faster than a human being can process. And, liquidity taking strategies(filling a mispriced order) will always be a speed game. Afterall, the bitcoin markets are so small that most HFT algorithms are limited.
 
 Other than GDAX, most exchanges are neither fast enough nor liquid enough. For some exchanges, the slow speed may be an intentional design choice as HFT is discouraged in order to protect investors and to stablize an already volatile market. There may also be paid firehose and backdoor market access unknown to ordinary traders. This is a possibility because of lack of regulation.
 
-#### Fee Schedule
+### Fee Schedule
 
 Differences in fee schedules encourage different market microstructure and trading behaviors.
 
@@ -34,25 +33,24 @@ Differences in fee schedules encourage different market microstructure and tradi
 | Maker Fee | 0%            | 0% - 0.1%   | 0% - 0.15%    | 0.25%   |
 | Taker Fee | 0.1% - 0.25%  | 0.1% - 0.2% | 0.05% - 0.25% | 0.25%   |
 
-The maker-taker model offers strong benefits such as greater liquidity and a smaller bid-ask spread. However, some exchanges are offering a flat fee for both makers and takers so there is less incentives for high frequency traders. One prominent example is Bittrex. For people who read Flash Boys, Bittrex is similar to IEX as GDAX is to NYSE.
+The maker-taker model offers strong benefits such as greater liquidity and a smaller bid-ask spread. However, some exchanges are offering a flat fee for both makers and takers so there is less incentives for high frequency traders. One prominent example is Bittrex. For people who have read Flash Boys by Michael Lewis, Bittrex is to IEX as GDAX is to NYSE. Also Bittrex is the most expensive exchange to trade on. It charges a premium for protection from HFT
 
-#### Developer API
+### Developer API
 
-The other prominent feature is the minimal API. It doesn't send the exact time an order book update happened. Instead, several BUY, SELL, and FILL updates are batched together in a WebSocket frame over the duration of a `Nounce`.
+The other prominent feature is the minimal API. It doesn't send the exact time an order book update was placed. Instead, several BUY, SELL, and FILL updates are batched together in a WebSocket frame over the duration of a `Nounce` or `seq`.
 
 However, the techniques required to scale a live order book in real-time will be the same regardless of the intended use case. So while the strategies will be different from what we know as HFT, the systems in use will be very similar.
 
 
-# Why I Chose Bittrex
+### Why I Chose Bittrex
 
-The choice of Bittrex is straightforward since the prediction engine simulates how a human trader would place orders(albeit faster in execution). It is an **investor-friendly** exchange that has dozens of coins with relatively **high liquidity** and fewer HFT meddling with the order book.
-
+The choice of Bittrex is reasonable because the prediction engine simulates approximately how a normal trader would place orders(albeit faster in execution). Working against the current, having HFT frontrunners will be annoying and render the algorithm unreliable. Bittrex is an investor-friendly exchange that has dozens of coins with relatively high liquidity and fewer HFT bots meddling with the order book. The order book is smaller in size to store and work with.
 
 # Storing Limit Order Book Updates in DB
 
-Using a plain PostgreSQL database hosted on Google Cloud SQL with daily backup, I can write a listener to INSERT new updates with ease. For Bittrex, the orderbook updates are ~300 INSERTS/second. For Poloniex, ~30 INSERTS/second. If you are choosing DB now, take a look at [TimescaleDB](https://blog.timescale.com/timescaledb-vs-6a696248104e).
+Using a plain PostgreSQL database hosted on Google Cloud SQL with daily backup, we write a listener to INSERT new updates with ease. For Bittrex, updates are ~250 INSERTS/second. For Poloniex, ~30 INSERTS/second. If you are choosing a DB today, take a look at [TimescaleDB](https://blog.timescale.com/timescaledb-vs-6a696248104e). It may be a better option if you would like to admin it yourself.
 
-Since it's a websocket related application, NodeJS is an obvious choice. I used TypeScript so code is self-documenting and easier with code hints.
+Since it's a websocket related application, NodeJS is an obvious choice. I used TypeScript because of self-documentation and auto-suggestion.
 
 ```typescript
 import * as pg from 'pg';
