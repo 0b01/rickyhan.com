@@ -100,6 +100,8 @@ Here we are using a connection pool because this software makes frequent queries
 
 The caveat is that you must always return the client to the pool if you successfully check it out, regardless of whether or not there was an error with the queries you ran on the client. If you don't check in the client your application will leak them and eventually your pool will be empty forever and all future requests to check out a client from the pool will wait forever.
 
+The pool will handle the consumer-producer threading issues.
+
 So we create two tables, one for order book updates and one for orderbook snapshots. The latter is not strictly necessary. The field `seq` is the Nounce because sometimes the websocket can scramble up the order so it's the programmer's job to re-arrange the updates in the right order. Also, we are storing filled trades with order book updates so there is no need to create another table. It's differentiated with `is_trade` field. `ts` is the timestamp. `trade_id` is the internal trade id. Needless to say, the table is index by `id`.
 
 This function is accompanied by `tableExistsForPair`. The script checks if the tables are created during init.
@@ -129,9 +131,11 @@ async function initTables(markets : string[]) {
 }
 ```
 
+We use `await Promise.all()` to concurrently run multiple DB requests instead of serially awaiting each one to finish. You always want to double check failed queries.
+
 # Listen for Updates
 
-First to add some joy to development, let's get the JSON types out of the way using TypeScript interface:
+First, to add some joy to development, let's get the types of JSON objects emitted defined using TypeScript interface. This is where TypeScript really comes in handy. My only gripe with TypeScript is the lack of a real [bottom](https://wiki.haskell.org/Bottom).
 
 ```typescript
 export interface ExchangeState {
@@ -319,8 +323,12 @@ async function watch() {
         throw e;
     }
 }
+
+let main = watch;
+
+main();
 ```
 
-To start the program, just call `watch()`.
+To start the program, just call `watch()`. As you can see, this code is highly modular and development was a breeze.
 
 With a copy of the order book securely stored in the database, we can replay and reconstruct the order book at any given moment. Next post will cover order book reconstruction, visualization and unusual discoveries. Stay tuned!
