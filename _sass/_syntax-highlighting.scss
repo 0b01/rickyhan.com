@@ -4,6 +4,7 @@
 .highlight {
     background: #fff;
     @extend %vertical-rhythm;
+    border: 1px solid #aaa5ff;
 
     .highlighter-rouge & {
       background: #eef;
