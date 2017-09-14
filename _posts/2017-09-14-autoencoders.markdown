@@ -3138,7 +3138,7 @@ AAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNTYuNDAuMTAx
 
 
 
-As we can see from the animation above. The neural network is not using phase angle as the latent space. Instead, it is using a complex interaction between these two numbers caused by the gradient of LSTM during the training process. As $$x \rightarrow \infty$$, the image under $$y = g(h) \rightarrow 0$$. This is understood as the decoder does not learn the underlying trig function but merely approximated a manifold of the high dimensional space.
+As we can see from the animation above. The neural network is not using phase angle as the latent space. Instead, it is using a complex interaction between these two numbers caused by the gradient of LSTM during the training process. As $$x \rightarrow \infty$$, the decoder $$g(h) \rightarrow 0$$. This is understood as the decoder does not learn the underlying trig function but merely approximated a manifold of the high dimensional space.
 
 Now let us visualize the latent space in its entirety. For higher dimensional latent space we may encounter in financial data, we can use PCA and tSNE but these are beyond the scope of this post.
 
