@@ -3160,33 +3160,14 @@ This circle you see above is the image under the encoder $$f(x)$$ in the latent 
 
 With PCA, any high-dimensional space can be projected into several linear subspaces using the Gram-Schmidt algorithm in linear algebra.
 
-## Potential Use Cases
+# Potential Use Cases
 
-### Anomaly detection
 
-Regulators can identify illegal trading strategies by building an unsupervised deep learning algorithm.
-
-Implementation: see below.
-
-### Pattern Search
-
-Given an example trading pattern, quickly identify similar patterns in a multi-dimensional data series.
-
-Implementation:
-
-* Train a stacked recurrent autoencoder on a dataset of sequences.
-
-* Encode the query sequence pattern $${\mathcal{X}_{t-1}, \mathcal{X}_{t}, \mathcal{X}_{t+1}, ...}$$ to obtain $$H_{\mathcal{X}}$$.
-
-* Then for all historical data, use the encoder to produce fixed length vectors $$\mathcal{H} = \{H_{a}, H_{b}, H_{c}, ...\}$$.
-
-* For each $$t \in \mathcal{H}$$, find $$\arg\!\min_t dist(H_{t}, H_{\mathcal{X}})$$.
-
-It is basically a fuzzy hash function. This I have not tried since calculating the hash for all sequence requires serious compute only available to big instituional players. 
-
-# Anomaly Detection
+## Anomaly Detection
 
 As you can see, autoencoding is an *extremely powerful* technique in data visualization and exploration. But there are more depth to autoencoding besides creating pretty graphs. One application is anomaly detection.
+
+Regulators can identify illegal trading strategies by building an unsupervised deep learning algorithm.
 
 In data mining, anomaly detection (or outlier detection) is the identification of observations that do not conform to an expected pattern in a dataset. The ability to train a neural network in unsupervised manner allows autoencoders to shine in this area. Auto encoders provide a very powerful alternative to traditional methods for signal reconstruction and anomaly detection in time series.
 
@@ -3235,9 +3216,7 @@ plt.xlim(0,10)
 plt.show()
 ```
 
-
 ![png](/static/autoencoders/output_29_0.png)
-
 
 
 ```python
@@ -3251,25 +3230,35 @@ for i in range(2):
 plt.ylim(-1,1)
 plt.xlim(0,10)
 plt.show()
-
-
 ```
-
 
 ![png](/static/autoencoders/output_30_0.png)
 
-
-## A Note on MSE
+### A Note on MSE
 
 Also, assume the financial series is normalized to be a zero-centered signal, MSE would be a mal-adapted measure. Because if the an outlier is near 0, then the MSE will likely be less than the MSE of the original signal(centered at 0). So it is imperative to devise a more sophisticated loss function by adding a moving average to the MSE. This way, we can judge based on the deviations from the rolling average.
 
-## A Note on Online Training / Inference
+### A Note on Online Training / Inference
 
 This algorithm, like all signal processing neural networks, should be able to operate on a rolling basis. The algorithm just needs a segment of the data from a sliding window.
 
 When attention mechanism is introduced, online training(input partially observed) becomes more involved. Online and linear-time attention alignment can be achieved with memory mechanism. I might cover attention mechanism for financial data in a future post.
 
-# Pattern Search
+## Pattern Search
+
+Given an example trading pattern, quickly identify similar patterns in a multi-dimensional data series.
+
+Implementation:
+
+* Train a stacked recurrent autoencoder on a dataset of sequences.
+
+* Encode the query sequence pattern $${\mathcal{X}_{t-1}, \mathcal{X}_{t}, \mathcal{X}_{t+1}, ...}$$ to obtain $$H_{\mathcal{X}}$$.
+
+* Then for all historical data, use the encoder to produce fixed length vectors $$\mathcal{H} = \{H_{a}, H_{b}, H_{c}, ...\}$$.
+
+* For each $$t \in \mathcal{H}$$, find $$\arg\!\min_t dist(H_{t}, H_{\mathcal{X}})$$.
+
+It is basically a fuzzy hash function. This I have not tried since calculating the hash for all sequence requires serious compute only available to big instituional players. 
 
 ![](https://i.imgur.com/wJuLdv8.png)
 
