@@ -3187,40 +3187,11 @@ plt.show()
 
 <p>With PCA, any high-dimensional space can be projected into several linear subspaces using the Gram-Schmidt algorithm in linear algebra.</p>
 
-<h2 id="potential-use-cases">Potential Use Cases</h2>
-
-<h3 id="anomaly-detection">Anomaly detection</h3>
-
-<p>Regulators can identify illegal trading strategies by building an unsupervised deep learning algorithm.</p>
-
-<p>Implementation: see below.</p>
-
-<h3 id="pattern-search">Pattern Search</h3>
-
-<p>Given an example trading pattern, quickly identify similar patterns in a multi-dimensional data series.</p>
-
-<p>Implementation:</p>
-
-<ul>
-  <li>
-    <p>Train a stacked recurrent autoencoder on a dataset of sequences.</p>
-  </li>
-  <li>
-    <p>Encode the query sequence pattern <script type="math/tex">{\mathcal{X}_{t-1}, \mathcal{X}_{t}, \mathcal{X}_{t+1}, ...}</script> to obtain <script type="math/tex">H_{\mathcal{X}}</script>.</p>
-  </li>
-  <li>
-    <p>Then for all historical data, use the encoder to produce fixed length vectors <script type="math/tex">\mathcal{H} = \{H_{a}, H_{b}, H_{c}, ...\}</script>.</p>
-  </li>
-  <li>
-    <p>For each <script type="math/tex">t \in \mathcal{H}</script>, find <script type="math/tex">\arg\!\min_t dist(H_{t}, H_{\mathcal{X}})</script>.</p>
-  </li>
-</ul>
-
-<p>It is basically a fuzzy hash function. This I have not tried since calculating the hash for all sequence requires serious compute only available to big instituional players.</p>
-
-<h1 id="anomaly-detection-1">Anomaly Detection</h1>
+<h2 id="anomaly-detection">Anomaly Detection</h2>
 
 <p>As you can see, autoencoding is an <em>extremely powerful</em> technique in data visualization and exploration. But there are more depth to autoencoding besides creating pretty graphs. One application is anomaly detection.</p>
+
+<p>Regulators can identify illegal trading strategies by building an unsupervised deep learning algorithm.</p>
 
 <p>In data mining, anomaly detection (or outlier detection) is the identification of observations that do not conform to an expected pattern in a dataset. The ability to train a neural network in unsupervised manner allows autoencoders to shine in this area. Auto encoders provide a very powerful alternative to traditional methods for signal reconstruction and anomaly detection in time series.</p>
 
@@ -3279,23 +3250,43 @@ for i in range(2):
 
 <p>plt.ylim(-1,1)
 plt.xlim(0,10)
-plt.show()</p>
-
-<p>```</p>
+plt.show()
+```</p>
 
 <p><img src="/static/autoencoders/output_30_0.png" alt="png" /></p>
 
-<h2 id="a-note-on-mse">A Note on MSE</h2>
+<h3 id="a-note-on-mse">A Note on MSE</h3>
 
 <p>Also, assume the financial series is normalized to be a zero-centered signal, MSE would be a mal-adapted measure. Because if the an outlier is near 0, then the MSE will likely be less than the MSE of the original signal(centered at 0). So it is imperative to devise a more sophisticated loss function by adding a moving average to the MSE. This way, we can judge based on the deviations from the rolling average.</p>
 
-<h2 id="a-note-on-online-training--inference">A Note on Online Training / Inference</h2>
+<h3 id="a-note-on-online-training--inference">A Note on Online Training / Inference</h3>
 
 <p>This algorithm, like all signal processing neural networks, should be able to operate on a rolling basis. The algorithm just needs a segment of the data from a sliding window.</p>
 
 <p>When attention mechanism is introduced, online training(input partially observed) becomes more involved. Online and linear-time attention alignment can be achieved with memory mechanism. I might cover attention mechanism for financial data in a future post.</p>
 
-<h1 id="pattern-search-1">Pattern Search</h1>
+<h2 id="pattern-search">Pattern Search</h2>
+
+<p>Given an example trading pattern, quickly identify similar patterns in a multi-dimensional data series.</p>
+
+<p>Implementation:</p>
+
+<ul>
+  <li>
+    <p>Train a stacked recurrent autoencoder on a dataset of sequences.</p>
+  </li>
+  <li>
+    <p>Encode the query sequence pattern <script type="math/tex">{\mathcal{X}_{t-1}, \mathcal{X}_{t}, \mathcal{X}_{t+1}, ...}</script> to obtain <script type="math/tex">H_{\mathcal{X}}</script>.</p>
+  </li>
+  <li>
+    <p>Then for all historical data, use the encoder to produce fixed length vectors <script type="math/tex">\mathcal{H} = \{H_{a}, H_{b}, H_{c}, ...\}</script>.</p>
+  </li>
+  <li>
+    <p>For each <script type="math/tex">t \in \mathcal{H}</script>, find <script type="math/tex">\arg\!\min_t dist(H_{t}, H_{\mathcal{X}})</script>.</p>
+  </li>
+</ul>
+
+<p>It is basically a fuzzy hash function. This I have not tried since calculating the hash for all sequence requires serious compute only available to big instituional players.</p>
 
 <p><img src="https://i.imgur.com/wJuLdv8.png" alt="" /></p>
 
@@ -3307,37 +3298,39 @@ plt.show()</p>
 
 <p>As we have seen above, a simple recurrent autoencoder has 3 layers: encoder LSTM layer, hidden layer, and decoder LSTM layer. Stacked autoencoders is constructed by stacking several single-layer autoencoders. The first single-layer autoencoder maps input to the first hidden vector. After training the first autoencoder, we discard the first decoder layer which is then replaced by the second autoencoder, which has a smaller latent vector dimension. Repeat this process and determine the correct depth and size by trial and error(If you know a better way please let me know.) The depth of stacked autoencoders enable feature invariance and allow for more abstractness in extracted features.</p>
 
-<h1 id="conclusion">Conclusion</h1>
-
-<p>Autoencoders are powerful tools despite their simplistic nature. We use autoencoders to visualize manifold on high dimensional space and detect anomalies in time series.</p>
-
-<h2 id="a-note-on-supervised-learning">A Note on Supervised Learning</h2>
+<h3 id="a-note-on-supervised-learning">A Note on Supervised Learning</h3>
 
 <p>This post only covered the unsupervised usage of autoencoders. Variational recurrent autoencoders can “denoise” artifically corrupted data input. I never had any luck with it so I can’t recommend the usage on financial data.</p>
 
 <p>Financial data is extremely noisy. But when trained with a smaller capacity, autoencoders have the built-in ability of denoising because they only learn the most salient features anyway.</p>
 
-<h2 id="a-note-on-variational-inference--bayesian-method">A Note on Variational Inference / Bayesian Method</h2>
+<h3 id="a-note-on-variational-inference--bayesian-method">A Note on Variational Inference / Bayesian Method</h3>
 
 <p>Please refer to this <a href="https://jaan.io/what-is-variational-autoencoder-vae-tutorial/">article</a>.</p>
 
+<h2 id="conclusion">Conclusion</h2>
+
+<p>Autoencoders are powerful tools despite their simplistic nature. We use autoencoders to visualize manifold on high dimensional space and detect anomalies in time series.</p>
+
 <h1 id="reference">Reference</h1>
+<pre>
+https://arxiv.org/pdf/1511.01432.pdf
 
-<p>https://arxiv.org/pdf/1511.01432.pdf</p>
+http://www1.icsi.berkeley.edu/~vinyals/Files/rnn_denoise_2012.pdf
 
-<p>http://www1.icsi.berkeley.edu/~vinyals/Files/rnn_denoise_2012.pdf</p>
+http://www.deeplearningbook.org/contents/autoencoders.html
 
-<p>http://www.deeplearningbook.org/contents/autoencoders.html</p>
+http://wp.doc.ic.ac.uk/hipeds/wp-content/uploads/sites/78/2017/01/Steven_Hutt_Deep_Networks_Financial.pdf
 
-<p>http://wp.doc.ic.ac.uk/hipeds/wp-content/uploads/sites/78/2017/01/Steven_Hutt_Deep_Networks_Financial.pdf</p>
+https://www.cs.cmu.edu/~epxing/Class/10708-17/project-reports/project8.pdf
 
-<p>https://www.cs.cmu.edu/~epxing/Class/10708-17/project-reports/project8.pdf</p>
+https://arxiv.org/pdf/1610.09513.pdf
 
-<p>https://arxiv.org/pdf/1610.09513.pdf</p>
+https://arxiv.org/pdf/1012.0349.pdf
 
-<p>https://arxiv.org/pdf/1012.0349.pdf</p>
+https://arxiv.org/pdf/1204.1381.pdf
 
-<p>https://arxiv.org/pdf/1204.1381.pdf</p>
+</pre>
 
   </div>
 

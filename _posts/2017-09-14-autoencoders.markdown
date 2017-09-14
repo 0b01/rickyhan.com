@@ -276,9 +276,6 @@ ani = animation.FuncAnimation(fig, animate, np.arange(1, 200), init_func=init,
 HTML(ani.to_html5_video())
 ```
 
-
-
-
 <video width="432" height="288" controls autoplay loop>
   <source type="video/mp4" src="data:video/mp4;base64,AAAAHGZ0eXBNNFYgAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAEliW1kYXQAAAKuBgX//6rcRem9
 5tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTQ4IHIyNjQzIDVjNjU3MDQgLSBILjI2NC9NUEVHLTQg
@@ -3160,9 +3157,6 @@ This circle you see above is the image under the encoder $$f(x)$$ in the latent 
 
 With PCA, any high-dimensional space can be projected into several linear subspaces using the Gram-Schmidt algorithm in linear algebra.
 
-# Potential Use Cases
-
-
 ## Anomaly Detection
 
 As you can see, autoencoding is an *extremely powerful* technique in data visualization and exploration. But there are more depth to autoencoding besides creating pretty graphs. One application is anomaly detection.
@@ -3195,9 +3189,7 @@ plt.title(dos_numeros)
 plt.show()
 ```
 
-
 ![png](/static/autoencoders/output_27_0.png)
-
 
 Now let's change one data point in the generator. This signifies a regime shift.
 
@@ -3270,22 +3262,22 @@ This is a good place to introduce how stacked autoencoders work.
 
 As we have seen above, a simple recurrent autoencoder has 3 layers: encoder LSTM layer, hidden layer, and decoder LSTM layer. Stacked autoencoders is constructed by stacking several single-layer autoencoders. The first single-layer autoencoder maps input to the first hidden vector. After training the first autoencoder, we discard the first decoder layer which is then replaced by the second autoencoder, which has a smaller latent vector dimension. Repeat this process and determine the correct depth and size by trial and error(If you know a better way please let me know.) The depth of stacked autoencoders enable feature invariance and allow for more abstractness in extracted features.
 
-# Conclusion
-
-Autoencoders are powerful tools despite their simplistic nature. We use autoencoders to visualize manifold on high dimensional space and detect anomalies in time series.
-
-## A Note on Supervised Learning
+### A Note on Supervised Learning
 
 This post only covered the unsupervised usage of autoencoders. Variational recurrent autoencoders can "denoise" artifically corrupted data input. I never had any luck with it so I can't recommend the usage on financial data.
 
 Financial data is extremely noisy. But when trained with a smaller capacity, autoencoders have the built-in ability of denoising because they only learn the most salient features anyway.
 
-## A Note on Variational Inference / Bayesian Method
+### A Note on Variational Inference / Bayesian Method
 
 Please refer to this [article](https://jaan.io/what-is-variational-autoencoder-vae-tutorial/).
 
-# Reference
+## Conclusion
 
+Autoencoders are powerful tools despite their simplistic nature. We use autoencoders to visualize manifold on high dimensional space and detect anomalies in time series.
+
+# Reference
+<pre>
 https://arxiv.org/pdf/1511.01432.pdf
 
 http://www1.icsi.berkeley.edu/~vinyals/Files/rnn_denoise_2012.pdf
@@ -3301,3 +3293,5 @@ https://arxiv.org/pdf/1610.09513.pdf
 https://arxiv.org/pdf/1012.0349.pdf
 
 https://arxiv.org/pdf/1204.1381.pdf
+
+</pre>
