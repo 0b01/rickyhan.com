@@ -9,23 +9,25 @@ categories: jekyll update
 
 # Using Autoencoders to Learn Most Salient Features from Time Series
 
-In this post we examine a simple, if not the simplest, tool in deep learning and see how it can be applied to multi-dimensional financial time series. This is a toy example of how one would apply such model to sequential data such as ones encountered in finance.
+This post is about a simple tool in deep learning toolbox: Autoencoder. It can be applied to multi-dimensional financial time series.
 
 ## Autoencoder
 
-Autoencoding is the practice of copying input to output. It has an internal state $$h$$ to represent the input. Autoencoders is composed of two parts: an encoder $$f :{\mathcal {X}}\rightarrow {\mathcal {H}}$$ and a decoder $$g :{\mathcal {H}}\rightarrow {\mathcal {Y}}$$. Autoencoders are designed to be unable to learn to copy perfectly.
+Autoencoding is the practice of copying input to output or learning the identity function. It has an internal state called latent space $$h$$ which is used to represent the input. Usually, this dimension is chosen to be smaller than the input(called undercomplete). Autoencoder is composed of two parts: an encoder $$f :{\mathcal {X}}\rightarrow {\mathcal {H}}$$ and a decoder $$g :{\mathcal {H}}\rightarrow {\mathcal {Y}}$$.
 
 ![autoencoder(keras)](https://blog.keras.io/img/ae/autoencoder_schema.jpg)
 
-The hidden dimension should constrained to be smaller than $$x$$, the input dimension. This way, $$h$$ is forced to take on useful properties and most salient features of the input space.
+The hidden dimension should be smaller than $$x$$, the input dimension. This way, $$h$$ is forced to take on useful properties and most salient features of the input space.
 
-To train an autoencoder, minimize
+To train an autoencoder, is equivalent to optimizing:
 
 $$\arg \min _{f, g}||X-(g \circ f )X||^{2}$$
 
 
 ## Recurrent Autoencoder
-For time series data, recurrent autoencoder is more useful. The encoder and decoder are RNNs such as LSTMs. We encode the input into an undercomplete latent vector $$h$$ which is then decoded. For the decoder, we can either initialize with the latent vector and use output at time $$t-1$$ as input for time $$t$$ or we can use latent vector $$h$$ as the input at each timestep. These are called conditional and unconditional RNNs. Recurrent autoencoder is a special case of sequence-to-sequence(seq2seq) architecture which is extremely powerful in neural machine translation.
+For time series data, recurrent autoencoder are especially useful. The only difference is that the encoder and decoder are replaced by RNNs such as LSTMs. Think of RNN as a for loop over time step so the state is kept. It can be unrolled into a feedforward network.
+
+First, the input is encoded into an undercomplete latent vector $$h$$ which is then decoded by the decoder. Recurrent autoencoder is a special case of sequence-to-sequence(seq2seq) architecture which is extremely powerful in neural machine translation where the neural network maps one language sequence to another.
 
 ![](https://esciencegroup.files.wordpress.com/2016/03/seq2seq.jpg)
 
@@ -38,16 +40,22 @@ import matplotlib.pyplot as plt
 
 # Task
 
-Copy a tensor of two sine function that are initialized out of phase.
+Copy a tensor of two sine functions that are initialized out of phase.
 
-The shape of the tensor is: $$(batch\_size, time\_step, input\_dim)$$ where $$input\_dim$$ = 2.
+The shape of the input is a tensor of shape $$(batch\_size, time\_step, input\_dim)$$.
+
+$$batch\_size$$ is the number of batches for training. Looping over each sample is slower than applying a tensor operation on a batch of several samples.
+
+$$time\_step$$ is the number of timeframes for the RNN to iterate over. In this case it is 10.
+
+$$input\_dim$$ is the number of data points at each timestep. Here we have 2 functions, so this number is 2.
 
 To deal with financial data, simply replace the $$input\_dim$$ axis with desired data points.
 
 * Bid, Ask, Spread, Volume, RSI. For this setup, the $$input\_dim$$ would be 5.
-* Order book levels. We can rebin the order book such that each tick aggregates more liquidity. An example would be 10 levels that are 1 stddev apart. Then $$input\_dim$$ would be 10.
+* Order book levels. We can rebin the order book along ticks such that each tick aggregates more liquidity. An example would be 10 levels that are 1 stdev apart. Then $$input\_dim$$ would be 10.
 
-Here is an artist's rendering of a recurrent autoencoder.
+Here is an artist's rendition of a recurrent autoencoder.
 
 
 ```python
@@ -74,8 +82,7 @@ plt.show()
 
 # Generator
 
-We generate 10 time steps for the random phased sine function.
-
+For each batch, generate 2 sine functions, each with 10 datapoints. The phase of the sine function is random.
 
 ```python
 import random
@@ -111,9 +118,9 @@ def gen(batch_size):
 
 # Model
 
-We use a 2-vector to represent the sine functions. Normally, we use $$\phi \in \mathbb{R}$$ to represent the phase angle for a trignometric function. The big picture here is to compress the input sine functions into two numbers and then decode them back.
+The goal is to use two numbers to represent the sine functions. Normally, we use $$\phi \in \mathbb{R}$$ to represent the phase angle for a trignometric function. Let's see if the neural network can learn this phase angle. The big picture here is to compress the input sine functions into two numbers and then decode them back.
 
-We define the architecture and let the neural network do its trick.
+Define the architecture and let the neural network do its trick. It is a model with 3 layers, a LSTM encoder that "encodes" the input time series into a fixed length vector(in this case 2). A RepeatVector that repeats the fixed length vector to 10 timesteps to be used as input to the LSTM decoder. For the decoder, we can either initialize the hidden state(memory) with the latent vector and use output at time $$t-1$$ as input for time $$t$$ or we can use latent vector $$h$$ as the input at each timestep. These are called conditional and unconditional decoders. 
 
 
 ```python
@@ -158,7 +165,7 @@ m.summary()
     _________________________________________________________________
 
 
-Since this post is a demonstration of the technique, we use the smallest model possible which happens to be the best in this case. The "best" dimensionality will be one that results in the highest lossless compression. In practice, it's equal part art and science. In production, there are a plethora of trick to accelerate training and finding the right capacity of the latent vector. Topics include: architectures for dealing with the asynchronus, non-stationary time series, preprocessing techniques such as wavelet transforms and FFT. I might cover these in an upcoming post if there's enough interest.
+Since this post is a demonstration of the technique, we use the smallest model possible which happens to be the best in this case. The "best" dimensionality will be one that results in the highest lossless compression. In practice, it's mostly an art than science. In production, there are a plethora of trick to accelerate training and finding the right capacity of the latent vector. Topics include: architectures for dealing with asynchronus, non-stationary time series, preprocessing techniques such as wavelet transforms and FFT.
 
 
 ```python
@@ -168,15 +175,10 @@ plt.xlabel("epoch")
 plt.show()
 ```
 
-    /usr/local/lib/python2.7/dist-packages/matplotlib/font_manager.py:1297: UserWarning: findfont: Font family [u'xkcd', u'Humor Sans', u'Comic Sans MS'] not found. Falling back to DejaVu Sans
-      (prop.get_family(), self.defaultFamily[fontext]))
-
-
-
 ![png](/static/autoencoders/output_10_1.png)
 
 
-You may think that the neural network suddenly "got it" during training but this is just the optimzer escaping a saddle point. In fact, as we demonstrate below, the neural network(at least the decoder) didn't get anything at all.
+You may think that the neural network suddenly "got it" during training but this is just the optimzer escaping a saddle point. In fact, as we demonstrate below, the neural network(at least the decoder) doesn't learn the math behind it at all.
 
 
 ```python
@@ -196,7 +198,7 @@ plt.show()
 
 With more training, it would be even closer to input but that is not necessary for this demonstration.
 
-Just for fun, we can visualize the latent 2-vector.
+Visualize the latent vector, this can be useful sometimes but not in this case.
 
 
 ```python
@@ -3164,11 +3166,11 @@ With PCA, any high-dimensional space can be projected into several linear subspa
 
 Regulators can identify illegal trading strategies by building an unsupervised deep learning algorithm.
 
-Implementation: as shown above.
+Implementation: see below.
 
 ### Pattern Search
 
-Given an example trading pattern, quickly identify similar patterns in a multi-dimensional sequence of data.
+Given an example trading pattern, quickly identify similar patterns in a multi-dimensional data series.
 
 Implementation:
 
