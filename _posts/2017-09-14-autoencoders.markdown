@@ -46,14 +46,14 @@ The shape of the input is a tensor of shape $$(batch\_size, time\_step, input\_d
 
 $$batch\_size$$ is the number of batches for training. Looping over each sample is slower than applying a tensor operation on a batch of several samples.
 
-$$time\_step$$ is the number of timeframes for the RNN to iterate over. In this case it is 10.
+$$time\_step$$ is the number of timeframes for the RNN to iterate over. In this tutorial it is 10 because 10 points are generated.
 
 $$input\_dim$$ is the number of data points at each timestep. Here we have 2 functions, so this number is 2.
 
 To deal with financial data, simply replace the $$input\_dim$$ axis with desired data points.
 
 * Bid, Ask, Spread, Volume, RSI. For this setup, the $$input\_dim$$ would be 5.
-* Order book levels. We can rebin the order book along ticks such that each tick aggregates more liquidity. An example would be 10 levels that are 1 stdev apart. Then $$input\_dim$$ would be 10.
+* Order book levels. We can rebin the order book along tick axis so each tick aggregates more liquidity. An example would be 10 levels that are 1 stdev apart. Then $$input\_dim$$ would be 10.
 
 Here is an artist's rendition of a recurrent autoencoder.
 
