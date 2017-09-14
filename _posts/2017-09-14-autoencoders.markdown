@@ -1,203 +1,205 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-  <channel>
-    <title>Ricky Han blog</title>
-    <description>Programming demos, tips, thoughts.
-</description>
-    <link>http://rickyhan.com/</link>
-    <atom:link href="http://rickyhan.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Thu, 14 Sep 2017 01:04:47 -0400</pubDate>
-    <lastBuildDate>Thu, 14 Sep 2017 01:04:47 -0400</lastBuildDate>
-    <generator>Jekyll v3.0.1</generator>
-    
-      <item>
-        <title>Gradient Trader Part 1: The Surprising Usefulness of Autoencoders</title>
-        <description>&lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+---
+layout: post
+title:  "Gradient Trader Part 1: The Surprising Usefulness of Autoencoders"
+date:   2017-09-14 00:37:02 -0400
+categories: jekyll update
+---
 
-&lt;h1 id=&quot;using-autoencoders-to-learn-most-salient-features-from-time-series&quot;&gt;Using Autoencoders to Learn Most Salient Features from Time Series&lt;/h1&gt;
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 
-&lt;p&gt;In this post we examine a simple, if not the simplest, tool in deep learning and see how it can be applied to multi-dimensional financial time series. This is a toy example of how one would apply such model to sequential data such as ones encountered in finance.&lt;/p&gt;
+# Using Autoencoders to Learn Most Salient Features from Time Series
 
-&lt;h2 id=&quot;autoencoder&quot;&gt;Autoencoder&lt;/h2&gt;
+In this post we examine a simple, if not the simplest, tool in deep learning and see how it can be applied to multi-dimensional financial time series. This is a toy example of how one would apply such model to sequential data such as ones encountered in finance.
 
-&lt;p&gt;Autoencoding is the practice of copying input to output. It has an internal state &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; to represent the input. Autoencoders is composed of two parts: an encoder &lt;script type=&quot;math/tex&quot;&gt;f :{\mathcal {X}}\rightarrow {\mathcal {H}}&lt;/script&gt; and a decoder &lt;script type=&quot;math/tex&quot;&gt;g :{\mathcal {H}}\rightarrow {\mathcal {Y}}&lt;/script&gt;. Autoencoders are designed to be unable to learn to copy perfectly.&lt;/p&gt;
+## Autoencoder
 
-&lt;p&gt;&lt;img src=&quot;https://blog.keras.io/img/ae/autoencoder_schema.jpg&quot; alt=&quot;autoencoder(keras)&quot; /&gt;&lt;/p&gt;
+Autoencoding is the practice of copying input to output. It has an internal state $$h$$ to represent the input. Autoencoders is composed of two parts: an encoder $$f :{\mathcal {X}}\rightarrow {\mathcal {H}}$$ and a decoder $$g :{\mathcal {H}}\rightarrow {\mathcal {Y}}$$. Autoencoders are designed to be unable to learn to copy perfectly.
 
-&lt;p&gt;The hidden dimension should constrained to be smaller than &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt;, the input dimension. This way, &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; is forced to take on useful properties and most salient features of the input space.&lt;/p&gt;
+![autoencoder(keras)](https://blog.keras.io/img/ae/autoencoder_schema.jpg)
 
-&lt;p&gt;To train an autoencoder, minimize&lt;/p&gt;
+The hidden dimension should constrained to be smaller than $$x$$, the input dimension. This way, $$h$$ is forced to take on useful properties and most salient features of the input space.
 
-&lt;script type=&quot;math/tex; mode=display&quot;&gt;\arg \min _{f, g}||X-(g \circ f )X||^{2}&lt;/script&gt;
+To train an autoencoder, minimize
 
-&lt;h2 id=&quot;recurrent-autoencoder&quot;&gt;Recurrent Autoencoder&lt;/h2&gt;
-&lt;p&gt;For time series data, recurrent autoencoder is more useful. The encoder and decoder are RNNs such as LSTMs. We encode the input into an undercomplete latent vector &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; which is then decoded. For the decoder, we can either initialize with the latent vector and use output at time &lt;script type=&quot;math/tex&quot;&gt;t-1&lt;/script&gt; as input for time &lt;script type=&quot;math/tex&quot;&gt;t&lt;/script&gt; or we can use latent vector &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; as the input at each timestep. These are called conditional and unconditional RNNs. Recurrent autoencoder is a special case of sequence-to-sequence(seq2seq) architecture which is extremely powerful in neural machine translation.&lt;/p&gt;
+$$\arg \min _{f, g}||X-(g \circ f )X||^{2}$$
 
-&lt;p&gt;&lt;img src=&quot;https://esciencegroup.files.wordpress.com/2016/03/seq2seq.jpg&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
+## Recurrent Autoencoder
+For time series data, recurrent autoencoder is more useful. The encoder and decoder are RNNs such as LSTMs. We encode the input into an undercomplete latent vector $$h$$ which is then decoded. For the decoder, we can either initialize with the latent vector and use output at time $$t-1$$ as input for time $$t$$ or we can use latent vector $$h$$ as the input at each timestep. These are called conditional and unconditional RNNs. Recurrent autoencoder is a special case of sequence-to-sequence(seq2seq) architecture which is extremely powerful in neural machine translation.
+
+![](https://esciencegroup.files.wordpress.com/2016/03/seq2seq.jpg)
+
+
+```python
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-&lt;/code&gt;&lt;/p&gt;
+```
 
-&lt;h1 id=&quot;task&quot;&gt;Task&lt;/h1&gt;
+# Task
 
-&lt;p&gt;Copy a tensor of two sine function that are initialized out of phase.&lt;/p&gt;
+Copy a tensor of two sine function that are initialized out of phase.
 
-&lt;p&gt;The shape of the tensor is: &lt;script type=&quot;math/tex&quot;&gt;(batch\_size, time\_step, input\_dim)&lt;/script&gt; where &lt;script type=&quot;math/tex&quot;&gt;input\_dim&lt;/script&gt; = 2.&lt;/p&gt;
+The shape of the tensor is: $$(batch\_size, time\_step, input\_dim)$$ where $$input\_dim$$ = 2.
 
-&lt;p&gt;To deal with financial data, simply replace the &lt;script type=&quot;math/tex&quot;&gt;input\_dim&lt;/script&gt; axis with desired data points.&lt;/p&gt;
+To deal with financial data, simply replace the $$input\_dim$$ axis with desired data points.
 
-&lt;ul&gt;
-  &lt;li&gt;Bid, Ask, Spread, Volume, RSI. For this setup, the &lt;script type=&quot;math/tex&quot;&gt;input\_dim&lt;/script&gt; would be 5.&lt;/li&gt;
-  &lt;li&gt;Order book levels. We can rebin the order book such that each tick aggregates more liquidity. An example would be 10 levels that are 1 stddev apart. Then &lt;script type=&quot;math/tex&quot;&gt;input\_dim&lt;/script&gt; would be 10.&lt;/li&gt;
-&lt;/ul&gt;
+* Bid, Ask, Spread, Volume, RSI. For this setup, the $$input\_dim$$ would be 5.
+* Order book levels. We can rebin the order book such that each tick aggregates more liquidity. An example would be 10 levels that are 1 stddev apart. Then $$input\_dim$$ would be 10.
 
-&lt;p&gt;Here is an artist’s rendering of a recurrent autoencoder.&lt;/p&gt;
+Here is an artist's rendering of a recurrent autoencoder.
 
-&lt;p&gt;```python
-plt.xkcd()&lt;/p&gt;
 
-&lt;p&gt;x1 = np.linspace(-np.pi, np.pi)
+```python
+plt.xkcd()
+
+x1 = np.linspace(-np.pi, np.pi)
 y1 = np.sin(x1)
 phi = 3
 x2 = np.linspace(-np.pi+phi, np.pi+phi)
-y2 = np.sin(x2)&lt;/p&gt;
+y2 = np.sin(x2)
 
-&lt;p&gt;f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex=True, sharey=True)
+f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex=True, sharey=True)
 ax1.plot(x1, y1)
-ax1.set_title(‘Recurrent Autoencoder’)
+ax1.set_title('Recurrent Autoencoder')
 ax2.plot(x1, y1)
 ax3.plot(x2, y2)
 ax4.plot(x2, y2)
 plt.show()
-```&lt;/p&gt;
+```
 
-&lt;p&gt;&lt;img src=&quot;/static/autoencoders/output_3_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 
-&lt;h1 id=&quot;generator&quot;&gt;Generator&lt;/h1&gt;
+![png](/static/autoencoders/output_3_0.png)
 
-&lt;p&gt;We generate 10 time steps for the random phased sine function.&lt;/p&gt;
 
-&lt;p&gt;```python
+# Generator
+
+We generate 10 time steps for the random phased sine function.
+
+
+```python
 import random
 def gen(batch_size):
-    seq_length = 10&lt;/p&gt;
+    seq_length = 10
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;batch_x = []
-batch_y = []
-for _ in range(batch_size):
-    rand = random.random() * 2 * np.pi
+    batch_x = []
+    batch_y = []
+    for _ in range(batch_size):
+        rand = random.random() * 2 * np.pi
 
-    sig1 = np.sin(np.linspace(0.0 * np.pi + rand,
-                              3.0 * np.pi + rand, seq_length * 2))
-    sig2 = np.cos(np.linspace(0.0 * np.pi + rand,
-                              3.0 * np.pi + rand, seq_length * 2))
-    x1 = sig1[:seq_length]
-    y1 = sig1[seq_length:]
-    x2 = sig2[:seq_length]
-    y2 = sig2[seq_length:]
+        sig1 = np.sin(np.linspace(0.0 * np.pi + rand,
+                                  3.0 * np.pi + rand, seq_length * 2))
+        sig2 = np.cos(np.linspace(0.0 * np.pi + rand,
+                                  3.0 * np.pi + rand, seq_length * 2))
+        x1 = sig1[:seq_length]
+        y1 = sig1[seq_length:]
+        x2 = sig2[:seq_length]
+        y2 = sig2[seq_length:]
 
-    x_ = np.array([x1, x2])
-    y_ = np.array([y1, y2])
-    x_, y_ = x_.T, y_.T
+        x_ = np.array([x1, x2])
+        y_ = np.array([y1, y2])
+        x_, y_ = x_.T, y_.T
 
-    batch_x.append(x_)
-    batch_y.append(y_)
+        batch_x.append(x_)
+        batch_y.append(y_)
 
-batch_x = np.array(batch_x)
-batch_y = np.array(batch_y)
+    batch_x = np.array(batch_x)
+    batch_y = np.array(batch_y)
 
-return batch_x, batch_x#batch_y ```
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
+    return batch_x, batch_x#batch_y
+```
 
-&lt;h1 id=&quot;model&quot;&gt;Model&lt;/h1&gt;
+# Model
 
-&lt;p&gt;We use a 2-vector to represent the sine functions. Normally, we use &lt;script type=&quot;math/tex&quot;&gt;\phi \in \mathbb{R}&lt;/script&gt; to represent the phase angle for a trignometric function. The big picture here is to compress the input sine functions into two numbers and then decode them back.&lt;/p&gt;
+We use a 2-vector to represent the sine functions. Normally, we use $$\phi \in \mathbb{R}$$ to represent the phase angle for a trignometric function. The big picture here is to compress the input sine functions into two numbers and then decode them back.
 
-&lt;p&gt;We define the architecture and let the neural network do its trick.&lt;/p&gt;
+We define the architecture and let the neural network do its trick.
 
-&lt;p&gt;```python
+
+```python
 from keras.models import Sequential, Model
-from keras.layers import LSTM, RepeatVector&lt;/p&gt;
+from keras.layers import LSTM, RepeatVector
 
-&lt;p&gt;batch_size = 100
-X_train, _ = gen(batch_size)&lt;/p&gt;
+batch_size = 100
+X_train, _ = gen(batch_size)
 
-&lt;p&gt;m = Sequential()
+m = Sequential()
 m.add(LSTM(2, input_shape=(10, 2)))
 m.add(RepeatVector(10))
 m.add(LSTM(2, return_sequences=True))
 print m.summary()
-m.compile(loss=’mse’, optimizer=’adam’)
+m.compile(loss='mse', optimizer='adam')
 history = m.fit(X_train, X_train, nb_epoch=2000, batch_size=100)
-```&lt;/p&gt;
+```
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Epoch 1/2000
-100/100 [==============================] - 0s - loss: 0.4845
-Epoch 2000/2000
-100/100 [==============================] - 0s - loss: 0.0280
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
+    Epoch 1/2000
+    100/100 [==============================] - 0s - loss: 0.4845
+    Epoch 2000/2000
+    100/100 [==============================] - 0s - loss: 0.0280
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
+
+
+```python
 m.summary()
-&lt;/code&gt;&lt;/p&gt;
+```
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;_________________________________________________________________
-Layer (type)                 Output Shape              Param #   
-=================================================================
-lstm_37 (LSTM)               (None, 2)                 40        
-_________________________________________________________________
-repeat_vector_12 (RepeatVect (None, 10, 2)             0         
-_________________________________________________________________
-lstm_38 (LSTM)               (None, 10, 2)             40        
-=================================================================
-Total params: 80
-Trainable params: 80
-Non-trainable params: 0
-_________________________________________________________________
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
+    _________________________________________________________________
+    Layer (type)                 Output Shape              Param #   
+    =================================================================
+    lstm_37 (LSTM)               (None, 2)                 40        
+    _________________________________________________________________
+    repeat_vector_12 (RepeatVect (None, 10, 2)             0         
+    _________________________________________________________________
+    lstm_38 (LSTM)               (None, 10, 2)             40        
+    =================================================================
+    Total params: 80
+    Trainable params: 80
+    Non-trainable params: 0
+    _________________________________________________________________
 
-&lt;p&gt;Since this post is a demonstration of the technique, we use the smallest model possible which happens to be the best in this case. The “best” dimensionality will be one that results in the highest lossless compression. In practice, it’s equal part art and science. In production, there are a plethora of trick to accelerate training and finding the right capacity of the latent vector. Topics include: architectures for dealing with the asynchronus, non-stationary time series, preprocessing techniques such as wavelet transforms and FFT. I might cover these in an upcoming post if there’s enough interest.&lt;/p&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-plt.plot(history.history[&#39;loss&#39;])
-plt.ylabel(&quot;loss&quot;)
-plt.xlabel(&quot;epoch&quot;)
+Since this post is a demonstration of the technique, we use the smallest model possible which happens to be the best in this case. The "best" dimensionality will be one that results in the highest lossless compression. In practice, it's equal part art and science. In production, there are a plethora of trick to accelerate training and finding the right capacity of the latent vector. Topics include: architectures for dealing with the asynchronus, non-stationary time series, preprocessing techniques such as wavelet transforms and FFT. I might cover these in an upcoming post if there's enough interest.
+
+
+```python
+plt.plot(history.history['loss'])
+plt.ylabel("loss")
+plt.xlabel("epoch")
 plt.show()
-&lt;/code&gt;&lt;/p&gt;
+```
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;/usr/local/lib/python2.7/dist-packages/matplotlib/font_manager.py:1297: UserWarning: findfont: Font family [u&#39;xkcd&#39;, u&#39;Humor Sans&#39;, u&#39;Comic Sans MS&#39;] not found. Falling back to DejaVu Sans
-  (prop.get_family(), self.defaultFamily[fontext]))
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
+    /usr/local/lib/python2.7/dist-packages/matplotlib/font_manager.py:1297: UserWarning: findfont: Font family [u'xkcd', u'Humor Sans', u'Comic Sans MS'] not found. Falling back to DejaVu Sans
+      (prop.get_family(), self.defaultFamily[fontext]))
 
-&lt;p&gt;&lt;img src=&quot;/static/autoencoders/output_10_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;You may think that the neural network suddenly “got it” during training but this is just the optimzer escaping a saddle point. In fact, as we demonstrate below, the neural network(at least the decoder) didn’t get anything at all.&lt;/p&gt;
 
-&lt;p&gt;```python
+![png](/static/autoencoders/output_10_1.png)
+
+
+You may think that the neural network suddenly "got it" during training but this is just the optimzer escaping a saddle point. In fact, as we demonstrate below, the neural network(at least the decoder) didn't get anything at all.
+
+
+```python
 X_test, _ = gen(1)
-decoded_imgs = m.predict(X_test)&lt;/p&gt;
+decoded_imgs = m.predict(X_test)
 
-&lt;p&gt;for i in range(2):
+for i in range(2):
     plt.plot(range(10), decoded_imgs[0, :, i])
     plt.plot(range(10), X_test[0, :, i])
 plt.title(dos_numeros)
 plt.show()
-```&lt;/p&gt;
+```
 
-&lt;p&gt;&lt;img src=&quot;/static/autoencoders/output_12_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;With more training, it would be even closer to input but that is not necessary for this demonstration.&lt;/p&gt;
+![png](/static/autoencoders/output_12_0.png)
 
-&lt;p&gt;Just for fun, we can visualize the latent 2-vector.&lt;/p&gt;
 
-&lt;p&gt;```python
+With more training, it would be even closer to input but that is not necessary for this demonstration.
+
+Just for fun, we can visualize the latent 2-vector.
+
+
+```python
 encoder = Model(m.layers[0].input, m.layers[0].output)
 encoded_imgs = encoder.predict(X_test)
 for i in range(len(encoded_imgs)):
@@ -205,68 +207,78 @@ for i in range(len(encoded_imgs)):
     plt.gray()
 plt.title(encoded_imgs[i])
 dos_numeros = encoded_imgs[i]
-plt.show()&lt;/p&gt;
+plt.show()
+    
+```
 
-&lt;p&gt;```&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;/static/autoencoders/output_14_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
+![png](/static/autoencoders/output_14_0.png)
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-m.save(&#39;m.h5&#39;)
-encoder.save(&#39;enc.h5&#39;)
-decoder.save(&#39;dec.h5&#39;)
-&lt;/code&gt;&lt;/p&gt;
 
-&lt;h1 id=&quot;visualization&quot;&gt;Visualization&lt;/h1&gt;
 
-&lt;p&gt;The model successfully compressed 20 points to 2 points. It learned the most salient features from data. However in this case, the model is useless in that it has successfully learned &lt;script type=&quot;math/tex&quot;&gt;g(f(x)) = x&lt;/script&gt; &lt;em&gt;everywhere&lt;/em&gt;. Autoencoder are designed to copy imperfectly. Like all neural networks, autoencoders exploit the idea that data concentrates around a lower-dimensional manifold or a set of manifolds. The goal is to learn a function that behaves correctly on the data points from this manifold and exhibit unusual behavior everywhere off this manifold. In this case, we found a 2-D manifold tangent to the 20-D space. Here we discuss some visualization techniques.&lt;/p&gt;
+```python
+m.save('m.h5')
+encoder.save('enc.h5')
+decoder.save('dec.h5')
+```
 
-&lt;p&gt;Below we demonstrate what the manifold looks like when it is projected back to 20D with an animation. Ideally this shows how the decoder works.&lt;/p&gt;
+# Visualization
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
+The model successfully compressed 20 points to 2 points. It learned the most salient features from data. However in this case, the model is useless in that it has successfully learned $$g(f(x)) = x$$ *everywhere*. Autoencoder are designed to copy imperfectly. Like all neural networks, autoencoders exploit the idea that data concentrates around a lower-dimensional manifold or a set of manifolds. The goal is to learn a function that behaves correctly on the data points from this manifold and exhibit unusual behavior everywhere off this manifold. In this case, we found a 2-D manifold tangent to the 20-D space. Here we discuss some visualization techniques.
+
+Below we demonstrate what the manifold looks like when it is projected back to 20D with an animation. Ideally this shows how the decoder works.
+
+
+```python
 x = Input(shape=(2,))
 decoded = m.layers[1](x)
 decoded = m.layers[2](decoded)
 decoder = Model(x, decoded)
-&lt;/code&gt;&lt;/p&gt;
+```
 
-&lt;p&gt;```python
+
+```python
 import matplotlib.animation as animation
 from IPython.display import HTML
-from numpy import random&lt;/p&gt;
+from numpy import random
 
-&lt;p&gt;```&lt;/p&gt;
+```
 
-&lt;p&gt;```python
-fig, ax = plt.subplots()&lt;/p&gt;
 
-&lt;p&gt;x = range(10)&lt;/p&gt;
+```python
+fig, ax = plt.subplots()
 
-&lt;p&gt;arr = decoder.predict(np.array([[-3.3, 0]]))
+x = range(10)
+
+arr = decoder.predict(np.array([[-3.3, 0]]))
 linea, = ax.plot(x, arr[0, :, 0])
 lineb, = ax.plot(x, arr[0, :, 1])
 ax.set_ylim(-1, 1)
-ax.set_xlim(-0.1, 10.1)&lt;/p&gt;
+ax.set_xlim(-0.1, 10.1)
 
-&lt;p&gt;def animate(i):
-    ax.set_title(“{0:.2f}, 0”.format(-3.3+i/30.))
+def animate(i):
+    ax.set_title("{0:.2f}, 0".format(-3.3+i/30.))
     arr = decoder.predict(np.array([[-3.3+i/30., 0]]))
     linea.set_ydata(arr[0, :, 0])
     lineb.set_ydata(arr[0, :, 1])
-    return line,&lt;/p&gt;
+    return line,
 
-&lt;h1 id=&quot;init-only-required-for-blitting-to-give-a-clean-slate&quot;&gt;Init only required for blitting to give a clean slate.&lt;/h1&gt;
-&lt;p&gt;def init():
+
+# Init only required for blitting to give a clean slate.
+def init():
     line.set_ydata(np.ma.array(x, mask=True))
-    return line,&lt;/p&gt;
+    return line,
 
-&lt;p&gt;ani = animation.FuncAnimation(fig, animate, np.arange(1, 200), init_func=init,
+ani = animation.FuncAnimation(fig, animate, np.arange(1, 200), init_func=init,
                               interval=25, blit=True)
 HTML(ani.to_html5_video())
-```&lt;/p&gt;
+```
 
-&lt;video width=&quot;432&quot; height=&quot;288&quot; controls=&quot;&quot; autoplay=&quot;&quot; loop=&quot;&quot;&gt;
-  &lt;source type=&quot;video/mp4&quot; src=&quot;data:video/mp4;base64,AAAAHGZ0eXBNNFYgAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAEliW1kYXQAAAKuBgX//6rcRem9
+
+
+
+<video width="432" height="288" controls autoplay loop>
+  <source type="video/mp4" src="data:video/mp4;base64,AAAAHGZ0eXBNNFYgAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAEliW1kYXQAAAKuBgX//6rcRem9
 5tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTQ4IHIyNjQzIDVjNjU3MDQgLSBILjI2NC9NUEVHLTQg
 QVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDE1IC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcv
 eDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MSByZWY9MyBkZWJsb2NrPTE6MDowIGFuYWx5c2U9
@@ -1638,40 +1650,47 @@ AToAAADBAAAAggAAAHMAAAGYAAAAzgAAAIQAAACkAAABsgAAAd8AAAC5AAAAwgAAAW0AAAFqAAAA
 AAAARQAAADYAAAA1AAAAXQAAAGsAAAA7AAAAMwAAADYAAAAUc3RjbwAAAAAAAAABAAAALAAAAGJ1
 ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QA
 AAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNTYuNDAuMTAx
-&quot; /&gt;
+">
   Your browser does not support the video tag.
-&lt;/video&gt;
+</video>
 
-&lt;p&gt;```python
-fig, ax = plt.subplots()&lt;/p&gt;
 
-&lt;p&gt;x = range(10)&lt;/p&gt;
 
-&lt;p&gt;arr = decoder.predict(np.array([[-3.3, -3.3]]))
+
+```python
+fig, ax = plt.subplots()
+
+x = range(10)
+
+arr = decoder.predict(np.array([[-3.3, -3.3]]))
 linea, = ax.plot(x, arr[0, :, 0])
 lineb, = ax.plot(x, arr[0, :, 1])
 ax.set_ylim(-1, 1)
-ax.set_xlim(-0.1, 10.1)&lt;/p&gt;
+ax.set_xlim(-0.1, 10.1)
 
-&lt;p&gt;def animate(i):
-    ax.set_title(“{0:.2f}, {0:.2f}”.format(-3.3+i/30.))
+def animate(i):
+    ax.set_title("{0:.2f}, {0:.2f}".format(-3.3+i/30.))
     arr = decoder.predict(np.array([[-3.3+i/30., -3.3+i/30.]]))
     linea.set_ydata(arr[0, :, 0])
     lineb.set_ydata(arr[0, :, 1])
-    return line,&lt;/p&gt;
+    return line,
 
-&lt;h1 id=&quot;init-only-required-for-blitting-to-give-a-clean-slate-1&quot;&gt;Init only required for blitting to give a clean slate.&lt;/h1&gt;
-&lt;p&gt;def init():
+
+# Init only required for blitting to give a clean slate.
+def init():
     line.set_ydata(np.ma.array(x, mask=True))
-    return line,&lt;/p&gt;
+    return line,
 
-&lt;p&gt;ani = animation.FuncAnimation(fig, animate, np.arange(1, 200), init_func=init,
+ani = animation.FuncAnimation(fig, animate, np.arange(1, 200), init_func=init,
                               interval=25, blit=True)
 HTML(ani.to_html5_video())
-```&lt;/p&gt;
+```
 
-&lt;video width=&quot;432&quot; height=&quot;288&quot; controls=&quot;&quot; autoplay=&quot;&quot; loop=&quot;&quot;&gt;
-  &lt;source type=&quot;video/mp4&quot; src=&quot;data:video/mp4;base64,AAAAHGZ0eXBNNFYgAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAE0IW1kYXQAAAKuBgX//6rcRem9
+
+
+
+<video width="432" height="288" controls autoplay loop>
+  <source type="video/mp4" src="data:video/mp4;base64,AAAAHGZ0eXBNNFYgAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAE0IW1kYXQAAAKuBgX//6rcRem9
 5tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTQ4IHIyNjQzIDVjNjU3MDQgLSBILjI2NC9NUEVHLTQg
 QVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDE1IC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcv
 eDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MSByZWY9MyBkZWJsb2NrPTE6MDowIGFuYWx5c2U9
@@ -3111,1491 +3130,181 @@ jAAAAS8AAACmAAAAcQAAAIcAAAFIAAAAuwAAAGoAAABhAAABYgAAAPQAAACKAAAAlwAAAZYAAADb
 AAAAdAAAAJAAAAEMAAAAwQAAAIoAAAB/AAAA4AAAATMAAACOAAAAcQAAAH8AAAAUc3RjbwAAAAAA
 AAABAAAALAAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAA
 AAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNTYuNDAuMTAx
-&quot; /&gt;
+">
   Your browser does not support the video tag.
-&lt;/video&gt;
+</video>
 
-&lt;p&gt;As we can see from the animation above. The neural network is not using phase angle as the latent space. Instead, it is using a complex interaction between these two numbers caused by the gradient of LSTM during the training process. As &lt;script type=&quot;math/tex&quot;&gt;x \rightarrow \infty&lt;/script&gt;, the image under &lt;script type=&quot;math/tex&quot;&gt;y = g(h) \rightarrow 0&lt;/script&gt;. This is understood as the decoder does not learn the underlying trig function but merely approximated a manifold of the high dimensional space.&lt;/p&gt;
 
-&lt;p&gt;Now let us visualize the latent space in its entirety. For higher dimensional latent space we may encounter in financial data, we can use PCA and tSNE but these are beyond the scope of this post.&lt;/p&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
+As we can see from the animation above. The neural network is not using phase angle as the latent space. Instead, it is using a complex interaction between these two numbers caused by the gradient of LSTM during the training process. As $$x \rightarrow \infty$$, the image under $$y = g(h) \rightarrow 0$$. This is understood as the decoder does not learn the underlying trig function but merely approximated a manifold of the high dimensional space.
+
+Now let us visualize the latent space in its entirety. For higher dimensional latent space we may encounter in financial data, we can use PCA and tSNE but these are beyond the scope of this post.
+
+
+```python
 X_test, _ = gen(1000)
 latent_vec = encoder.predict(X_test)
 plt.scatter(latent_vec[:, 0], latent_vec[:, 1])
 plt.xlim(-1,1)
 plt.ylim(-1,1)
 plt.show()
-&lt;/code&gt;&lt;/p&gt;
+```
 
-&lt;p&gt;&lt;img src=&quot;/static/autoencoders/output_23_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;This circle you see above is the image under the encoder &lt;script type=&quot;math/tex&quot;&gt;f(x)&lt;/script&gt; in the latent space &lt;script type=&quot;math/tex&quot;&gt;H&lt;/script&gt;. As you may have guessed from the beginning, since the trig map projects cartesian coordinate to a polar coordinate. The encoded vector is a linear subspace. A circle in polar coordinate has the equation &lt;script type=&quot;math/tex&quot;&gt;r = a&lt;/script&gt;. I hope this is a good enough punchline for those who didn’t hypothesize this result.&lt;/p&gt;
+![png](/static/autoencoders/output_23_0.png)
 
-&lt;p&gt;With PCA, any high-dimensional space can be projected into several linear subspaces using the Gram-Schmidt algorithm in linear algebra.&lt;/p&gt;
 
-&lt;h2 id=&quot;potential-use-cases&quot;&gt;Potential Use Cases&lt;/h2&gt;
+This circle you see above is the image under the encoder $$f(x)$$ in the latent space $$H$$. As you may have guessed from the beginning, since the trig map projects cartesian coordinate to a polar coordinate. The encoded vector is a linear subspace. A circle in polar coordinate has the equation $$r = a$$. I hope this is a good enough punchline for those who didn't hypothesize this result.
 
-&lt;h3 id=&quot;anomaly-detection&quot;&gt;Anomaly detection&lt;/h3&gt;
+With PCA, any high-dimensional space can be projected into several linear subspaces using the Gram-Schmidt algorithm in linear algebra.
 
-&lt;p&gt;Regulators can identify illegal trading strategies by building an unsupervised deep learning algorithm.&lt;/p&gt;
+## Potential Use Cases
 
-&lt;p&gt;Implementation: as shown above.&lt;/p&gt;
+### Anomaly detection
 
-&lt;h3 id=&quot;pattern-search&quot;&gt;Pattern Search&lt;/h3&gt;
+Regulators can identify illegal trading strategies by building an unsupervised deep learning algorithm.
 
-&lt;p&gt;Given an example trading pattern, quickly identify similar patterns in a multi-dimensional sequence of data.&lt;/p&gt;
+Implementation: as shown above.
 
-&lt;p&gt;Implementation:&lt;/p&gt;
+### Pattern Search
 
-&lt;ul&gt;
-  &lt;li&gt;
-    &lt;p&gt;Train a stacked recurrent autoencoder on a set of desired pattern(s).&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Then for all historical data, use the encoder(!) to produce a fixed length vector.&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Compare this vector with a distance metric.&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
+Given an example trading pattern, quickly identify similar patterns in a multi-dimensional sequence of data.
 
-&lt;p&gt;It is basically a fuzzy hash function. This I have not tried since calculating the hash for all sequence requires serious compute only available to big instituional players.&lt;/p&gt;
+Implementation:
 
-&lt;h1 id=&quot;anomaly-detection-1&quot;&gt;Anomaly Detection&lt;/h1&gt;
+* Train a stacked recurrent autoencoder on a set of desired pattern(s).
 
-&lt;p&gt;As you can see, autoencoding is an &lt;em&gt;extremely powerful&lt;/em&gt; technique in data visualization and exploration. But there are more depth to autoencoding besides creating pretty graphs. One application is anomaly detection.&lt;/p&gt;
+* Then for all historical data, use the encoder(!) to produce a fixed length vector.
 
-&lt;p&gt;In data mining, anomaly detection (or outlier detection) is the identification of observations that do not conform to an expected pattern in a dataset. The ability to train a neural network in unsupervised manner allows autoencoders to shine in this area. Auto encoders provide a very powerful alternative to traditional methods for signal reconstruction and anomaly detection in time series.&lt;/p&gt;
+* Compare this vector with a distance metric.
 
-&lt;p&gt;Training an autoencoder is conceptually simple:&lt;/p&gt;
+It is basically a fuzzy hash function. This I have not tried since calculating the hash for all sequence requires serious compute only available to big instituional players. 
 
-&lt;ol&gt;
-  &lt;li&gt;Train with training set &lt;script type=&quot;math/tex&quot;&gt;\mathcal{X}_{train}&lt;/script&gt; with regularization.&lt;/li&gt;
-  &lt;li&gt;Evaluate on &lt;script type=&quot;math/tex&quot;&gt;\mathcal{X}_{eval}&lt;/script&gt; and determine the capacity of the autoencoder.&lt;/li&gt;
-  &lt;li&gt;When we believe it’s good enough after inspecting error visualization, choose a threshold of error(such as &lt;script type=&quot;math/tex&quot;&gt;2\sigma&lt;/script&gt;) to determine whether the data point is an anomaly or not. Of course, since we are dealing with time series, this threshold should be chosen on a rolling basis (sliding window).&lt;/li&gt;
-&lt;/ol&gt;
+# Anomaly Detection
 
-&lt;p&gt;In financial time series(and other series), we often want to detect regime shifts, i.e. know before the price shifts abruptly. In my experiements, this is particularly effective in detecting iceberg orders which is a single large order divided into severel smaller ones for the purpose of hiding the actual order quantity. Detecting iceberg orders using ordinary machine learning methods is difficult, but obvious upon human inspection.&lt;/p&gt;
+As you can see, autoencoding is an *extremely powerful* technique in data visualization and exploration. But there are more depth to autoencoding besides creating pretty graphs. One application is anomaly detection.
 
-&lt;p&gt;In the next part we will simulate how anomaly detection may work. First let us plot the mean square error of the autoencoder output.&lt;/p&gt;
+In data mining, anomaly detection (or outlier detection) is the identification of observations that do not conform to an expected pattern in a dataset. The ability to train a neural network in unsupervised manner allows autoencoders to shine in this area. Auto encoders provide a very powerful alternative to traditional methods for signal reconstruction and anomaly detection in time series.
 
-&lt;p&gt;```python
+Training an autoencoder is conceptually simple:
+
+1. Train with training set $$\mathcal{X}_{train}$$ with regularization.
+2. Evaluate on $$\mathcal{X}_{eval}$$ and determine the capacity of the autoencoder.
+3. When we believe it's good enough after inspecting error visualization, choose a threshold of error(such as $$2\sigma$$) to determine whether the data point is an anomaly or not. Of course, since we are dealing with time series, this threshold should be chosen on a rolling basis (sliding window).
+
+In financial time series(and other series), we often want to detect regime shifts, i.e. know before the price shifts abruptly. In my experiements, this is particularly effective in detecting iceberg orders which is a single large order divided into severel smaller ones for the purpose of hiding the actual order quantity. Detecting iceberg orders using ordinary machine learning methods is difficult, but obvious upon human inspection.
+
+In the next part we will simulate how anomaly detection may work. First let us plot the mean square error of the autoencoder output.
+
+
+```python
 X_test, _ = gen(1)
-decoded_imgs = m.predict(X_test)&lt;/p&gt;
+decoded_imgs = m.predict(X_test)
 
-&lt;p&gt;for i in range(2):
-    plt.plot(range(10), np.square(np.abs(X_test[0, :, i] - decoded_imgs[0, :, i])), label=”MSE”)&lt;/p&gt;
+for i in range(2):
+    plt.plot(range(10), np.square(np.abs(X_test[0, :, i] - decoded_imgs[0, :, i])), label="MSE")
 
-&lt;p&gt;plt.ylim(-1,1)
+plt.ylim(-1,1)
 plt.xlim(0,10)
 plt.title(dos_numeros)
 plt.show()
-```&lt;/p&gt;
+```
 
-&lt;p&gt;&lt;img src=&quot;/static/autoencoders/output_27_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;Now let’s change one data point in the generator. This signifies a regime shift.&lt;/p&gt;
+![png](/static/autoencoders/output_27_0.png)
 
-&lt;p&gt;```python
+
+Now let's change one data point in the generator. This signifies a regime shift.
+
+
+```python
 X_test, _ = gen(1)
 X_test[0, 4, 0] = X_test[0, 4, 0] + 0.5
-decoded_imgs = m.predict(X_test)&lt;/p&gt;
+decoded_imgs = m.predict(X_test)
 
-&lt;p&gt;for i in range(2):
+for i in range(2):
     plt.plot(decoded_imgs[0, :, i])
-    plt.plot(X_test[0, :, i])&lt;/p&gt;
+    plt.plot(X_test[0, :, i])
 
-&lt;p&gt;plt.ylim(-1,1)
+plt.ylim(-1,1)
 plt.xlim(0,10)
 plt.show()
-```&lt;/p&gt;
+```
 
-&lt;p&gt;&lt;img src=&quot;/static/autoencoders/output_29_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;```python
+![png](/static/autoencoders/output_29_0.png)
+
+
+
+```python
 for i in range(2):
     mse = np.square(np.abs(X_test[0, :, i] - decoded_imgs[0, :, i]))
     anomaly = np.argmax(mse)
-    if mse[anomaly] &amp;gt; 0.4:
-        plt.title(“Anomaly detected in series {} at time step: {}”.format(i, anomaly))
-    plt.plot(range(10), mse, label=”MSE”)&lt;/p&gt;
+    if mse[anomaly] > 0.4:
+        plt.title("Anomaly detected in series {} at time step: {}".format(i, anomaly))
+    plt.plot(range(10), mse, label="MSE")
 
-&lt;p&gt;plt.ylim(-1,1)
+plt.ylim(-1,1)
 plt.xlim(0,10)
-plt.show()&lt;/p&gt;
+plt.show()
 
-&lt;p&gt;```&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;/static/autoencoders/output_30_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
+```
 
-&lt;h2 id=&quot;a-note-on-mse&quot;&gt;A Note on MSE&lt;/h2&gt;
 
-&lt;p&gt;Also, assume the financial series is normalized to be a zero-centered signal, MSE would be a mal-adapted measure. Because if the an outlier is near 0, then the MSE will likely be less than the MSE of the original signal(centered at 0). So it is imperative to devise a more sophisticated loss function by adding a moving average to the MSE. This way, we can judge based on the deviations from the rolling average.&lt;/p&gt;
+![png](/static/autoencoders/output_30_0.png)
 
-&lt;h2 id=&quot;a-note-on-online-training--inference&quot;&gt;A Note on Online Training / Inference&lt;/h2&gt;
 
-&lt;p&gt;This algorithm, like all signal processing neural networks, should be able to operate on a rolling basis. The algorithm just needs a segment of the data from a sliding window.&lt;/p&gt;
+## A Note on MSE
 
-&lt;p&gt;When attention mechanism is introduced, online training(input partially observed) becomes more involved. Online and linear-time attention alignment can be achieved with memory mechanism. I might cover attention mechanism for financial data in a future post.&lt;/p&gt;
+Also, assume the financial series is normalized to be a zero-centered signal, MSE would be a mal-adapted measure. Because if the an outlier is near 0, then the MSE will likely be less than the MSE of the original signal(centered at 0). So it is imperative to devise a more sophisticated loss function by adding a moving average to the MSE. This way, we can judge based on the deviations from the rolling average.
 
-&lt;h1 id=&quot;pattern-search-1&quot;&gt;Pattern Search&lt;/h1&gt;
+## A Note on Online Training / Inference
 
-&lt;p&gt;&lt;img src=&quot;https://i.imgur.com/wJuLdv8.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+This algorithm, like all signal processing neural networks, should be able to operate on a rolling basis. The algorithm just needs a segment of the data from a sliding window.
 
-&lt;h1 id=&quot;stacked-autoencoders&quot;&gt;Stacked Autoencoders&lt;/h1&gt;
+When attention mechanism is introduced, online training(input partially observed) becomes more involved. Online and linear-time attention alignment can be achieved with memory mechanism. I might cover attention mechanism for financial data in a future post.
 
-&lt;p&gt;This is a good place to introduce how stacked autoencoders work.&lt;/p&gt;
+# Pattern Search
 
-&lt;p&gt;&lt;img src=&quot;https://www.researchgate.net/profile/Konrad_Kording/publication/274728436/figure/fig2/AS:271715934666753@1441793535194/Figure-2-A-A-stacked-autoencoder-is-trained-on-high-dimensional-data-im-i-1.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+![](https://i.imgur.com/wJuLdv8.png)
 
-&lt;p&gt;As we have seen above, a simple recurrent autoencoder has 3 layers: encoder LSTM layer, hidden layer, and decoder LSTM layer. Stacked autoencoders is constructed by stacking several single-layer autoencoders. The first single-layer autoencoder maps input to the first hidden vector. After training the first autoencoder, we discard the first decoder layer which is then replaced by the second autoencoder, which has a smaller latent vector dimension. Repeat this process and determine the correct depth and size by trial and error(If you know a better way please let me know.) The depth of stacked autoencoders enable feature invariance and allow for more abstractness in extracted features.&lt;/p&gt;
+# Stacked Autoencoders
 
-&lt;h1 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h1&gt;
+This is a good place to introduce how stacked autoencoders work.
 
-&lt;p&gt;Autoencoders are powerful tools despite their simplistic nature. We use autoencoders to visualize manifold on high dimensional space and detect anomalies in time series.&lt;/p&gt;
+![](https://www.researchgate.net/profile/Konrad_Kording/publication/274728436/figure/fig2/AS:271715934666753@1441793535194/Figure-2-A-A-stacked-autoencoder-is-trained-on-high-dimensional-data-im-i-1.png)
 
-&lt;h2 id=&quot;a-note-on-supervised-learning&quot;&gt;A Note on Supervised Learning&lt;/h2&gt;
+As we have seen above, a simple recurrent autoencoder has 3 layers: encoder LSTM layer, hidden layer, and decoder LSTM layer. Stacked autoencoders is constructed by stacking several single-layer autoencoders. The first single-layer autoencoder maps input to the first hidden vector. After training the first autoencoder, we discard the first decoder layer which is then replaced by the second autoencoder, which has a smaller latent vector dimension. Repeat this process and determine the correct depth and size by trial and error(If you know a better way please let me know.) The depth of stacked autoencoders enable feature invariance and allow for more abstractness in extracted features.
 
-&lt;p&gt;This post only covered the unsupervised usage of autoencoders. Variational recurrent autoencoders can “denoise” artifically corrupted data input. I never had any luck with it so I can’t recommend the usage on financial data.&lt;/p&gt;
+# Conclusion
 
-&lt;p&gt;Financial data is extremely noisy. But when trained with a smaller capacity, autoencoders have the built-in ability of denoising because they only learn the most salient features anyway.&lt;/p&gt;
+Autoencoders are powerful tools despite their simplistic nature. We use autoencoders to visualize manifold on high dimensional space and detect anomalies in time series.
 
-&lt;h2 id=&quot;a-note-on-variational-inference--bayesian-method&quot;&gt;A Note on Variational Inference / Bayesian Method&lt;/h2&gt;
+## A Note on Supervised Learning
 
-&lt;p&gt;Please refer to this &lt;a href=&quot;https://jaan.io/what-is-variational-autoencoder-vae-tutorial/&quot;&gt;article&lt;/a&gt;.&lt;/p&gt;
+This post only covered the unsupervised usage of autoencoders. Variational recurrent autoencoders can "denoise" artifically corrupted data input. I never had any luck with it so I can't recommend the usage on financial data.
 
-&lt;h1 id=&quot;reference&quot;&gt;Reference&lt;/h1&gt;
+Financial data is extremely noisy. But when trained with a smaller capacity, autoencoders have the built-in ability of denoising because they only learn the most salient features anyway.
 
-&lt;p&gt;https://arxiv.org/pdf/1511.01432.pdf&lt;/p&gt;
+## A Note on Variational Inference / Bayesian Method
 
-&lt;p&gt;http://www1.icsi.berkeley.edu/~vinyals/Files/rnn_denoise_2012.pdf&lt;/p&gt;
+Please refer to this [article](https://jaan.io/what-is-variational-autoencoder-vae-tutorial/).
 
-&lt;p&gt;http://www.deeplearningbook.org/contents/autoencoders.html&lt;/p&gt;
+# Reference
 
-&lt;p&gt;http://wp.doc.ic.ac.uk/hipeds/wp-content/uploads/sites/78/2017/01/Steven_Hutt_Deep_Networks_Financial.pdf&lt;/p&gt;
+https://arxiv.org/pdf/1511.01432.pdf
 
-&lt;p&gt;https://www.cs.cmu.edu/~epxing/Class/10708-17/project-reports/project8.pdf&lt;/p&gt;
+http://www1.icsi.berkeley.edu/~vinyals/Files/rnn_denoise_2012.pdf
 
-&lt;p&gt;https://arxiv.org/pdf/1610.09513.pdf&lt;/p&gt;
+http://www.deeplearningbook.org/contents/autoencoders.html
 
-&lt;p&gt;https://arxiv.org/pdf/1012.0349.pdf&lt;/p&gt;
+http://wp.doc.ic.ac.uk/hipeds/wp-content/uploads/sites/78/2017/01/Steven_Hutt_Deep_Networks_Financial.pdf
 
-&lt;p&gt;https://arxiv.org/pdf/1204.1381.pdf&lt;/p&gt;
-</description>
-        <pubDate>Thu, 14 Sep 2017 00:37:02 -0400</pubDate>
-        <link>http://rickyhan.com/jekyll/update/2017/09/14/autoencoders.html</link>
-        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/09/14/autoencoders.html</guid>
-        
-        
-        <category>jekyll</category>
-        
-        <category>update</category>
-        
-      </item>
-    
-      <item>
-        <title>Gradient Trader Part 0: Building a Cryptocurrency Trading Bot</title>
-        <description>&lt;p&gt;I am really excited about my new project. It is a fairly sophisticated crypto trading bot built with TensorFlow. In the upcoming series of posts, I will share some details on how it was built. Unfortunately, since the bot is profitable, it will be operating in stealth mode and won’t be open-sourced. However, the non-mission-critical parts will be. For example, I am currently porting visualization charts and interactive graphs into a separate publishable module. Expect pretty graphics soon.&lt;/p&gt;
+https://www.cs.cmu.edu/~epxing/Class/10708-17/project-reports/project8.pdf
 
-&lt;p&gt;The intention is to use this blog as a real-time lab report and tutorial for new quant enthusiasts. Financial demos are few and far between so I hope this will provide some value. This is the first post in the installment. In this post we show how to import limit order book updates into your own database for later use. A wise man once said, 99% of programming is moving a chunk of data from one place to another, transforming it in the process. Order book update is no exception. Here, we listen to every limit order update emitted from the exchange’s websocket and store it in a PostgreSQL database. Reconstructing an LOB is covered in the next post.&lt;/p&gt;
+https://arxiv.org/pdf/1610.09513.pdf
 
-&lt;h1 id=&quot;the-state-of-cryptocurrency-trading&quot;&gt;The State of Cryptocurrency Trading&lt;/h1&gt;
+https://arxiv.org/pdf/1012.0349.pdf
 
-&lt;p&gt;Cryptocurrency is the Wild West of trading. Pump and dump scams happen on an hourly basis. Even the higher capitalization markets experience huge price swings that can easily wipe out traditional investors. Market manipulation is the norm and behavior is irrational and counterintuitive. Some strategies can lock people away if executed in a regulated environment.&lt;/p&gt;
-
-&lt;p&gt;Cryptocurrency is traded on digital exchanges to which access is universal as long as the trader has an Internet connection. High volatility and low barrier of entrance provide an enormous appeal to casual day traders who trade based entirely on market sentiment. As a result, there is “hype money” flowing around major cryptocurrency exchanges, which means cryptocurrency is fertile ground for pattern matching / statistical inference algorithms to flourish.&lt;/p&gt;
-
-&lt;h2 id=&quot;market-microstructure&quot;&gt;Market Microstructure&lt;/h2&gt;
-
-&lt;h3 id=&quot;presence-of-hft&quot;&gt;Presence of HFT&lt;/h3&gt;
-
-&lt;p&gt;The speed of cryptocurrency exchanges are 1000 times slower than that of stocks and futures. Of course, some exchanges are faster than others. The fastest, most advanced exchange as of September 2017 is Coinbase GDAX. However, it may not be the most friendly exchange to run your strategy. Most exchanges have millisecond time-scale resolution which means a lot of new HFT strategies are rendered useless. Modern HFT trading strategy requires microsecond resolution. However, there are plenty of market makers operating on a larger time-scale. The Ether Flash Crash only took 45 milliseconds, way faster than a human being can process. And, liquidity taking strategies(filling a mispriced order) will always be a speed game. Afterall, the bitcoin markets are so small that most HFT algorithms are limited.&lt;/p&gt;
-
-&lt;p&gt;Other than GDAX, most exchanges are neither fast enough nor liquid enough. For some exchanges, the slow speed may be an intentional design choice as HFT is discouraged in order to protect investors and to stablize an already volatile market. There may also be paid firehose and backdoor market access unknown to ordinary traders. This is a possibility because of lack of regulation.&lt;/p&gt;
-
-&lt;h3 id=&quot;fee-schedule&quot;&gt;Fee Schedule&lt;/h3&gt;
-
-&lt;p&gt;Differences in fee schedules encourage different market microstructure and trading behaviors.&lt;/p&gt;
-
-&lt;table&gt;
-  &lt;thead&gt;
-    &lt;tr&gt;
-      &lt;th&gt; &lt;/th&gt;
-      &lt;th&gt;Coinbase GDAX&lt;/th&gt;
-      &lt;th&gt;Bitfinex&lt;/th&gt;
-      &lt;th&gt;Poloniex&lt;/th&gt;
-      &lt;th&gt;Bittrex&lt;/th&gt;
-    &lt;/tr&gt;
-  &lt;/thead&gt;
-  &lt;tbody&gt;
-    &lt;tr&gt;
-      &lt;td&gt;Maker Fee&lt;/td&gt;
-      &lt;td&gt;0%&lt;/td&gt;
-      &lt;td&gt;0% - 0.1%&lt;/td&gt;
-      &lt;td&gt;0% - 0.15%&lt;/td&gt;
-      &lt;td&gt;0.25%&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;Taker Fee&lt;/td&gt;
-      &lt;td&gt;0.1% - 0.25%&lt;/td&gt;
-      &lt;td&gt;0.1% - 0.2%&lt;/td&gt;
-      &lt;td&gt;0.05% - 0.25%&lt;/td&gt;
-      &lt;td&gt;0.25%&lt;/td&gt;
-    &lt;/tr&gt;
-  &lt;/tbody&gt;
-&lt;/table&gt;
-
-&lt;p&gt;The maker-taker model offers strong benefits such as greater liquidity and a smaller bid-ask spread. However, some exchanges are offering a flat fee for both makers and takers so there is less incentives for high frequency traders. One prominent example is Bittrex. For people who have read Flash Boys by Michael Lewis, Bittrex is to IEX as GDAX is to NYSE. Also Bittrex is the most expensive exchange to trade on. It charges a premium for protection from HFT&lt;/p&gt;
-
-&lt;h3 id=&quot;developer-api&quot;&gt;Developer API&lt;/h3&gt;
-
-&lt;p&gt;The other prominent feature is the minimal API. It doesn’t send the exact time an order book update was placed. Instead, several BUY, SELL, and FILL updates are batched together in a WebSocket frame over the duration of a &lt;code class=&quot;highlighter-rouge&quot;&gt;Nounce&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;seq&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;However, the techniques required to scale a live order book in real-time will be the same regardless of the intended use case. So while the strategies will be different from what we know as HFT, the systems in use will be very similar.&lt;/p&gt;
-
-&lt;h3 id=&quot;why-i-chose-bittrex&quot;&gt;Why I Chose Bittrex&lt;/h3&gt;
-
-&lt;p&gt;The choice of Bittrex is reasonable because the prediction engine simulates approximately how a normal trader would place orders(albeit faster in execution). Working against the current, having HFT frontrunners will be annoying and render the algorithm unreliable. Bittrex is an investor-friendly exchange that has dozens of coins with relatively high liquidity and fewer HFT bots meddling with the order book. The order book is smaller in size to store and work with.&lt;/p&gt;
-
-&lt;h1 id=&quot;storing-limit-order-book-updates-in-db&quot;&gt;Storing Limit Order Book Updates in DB&lt;/h1&gt;
-
-&lt;p&gt;Using a plain PostgreSQL database hosted on Google Cloud SQL with daily backup, we write a listener to INSERT new updates with ease. For Bittrex, updates are ~250 INSERTS/second. For Poloniex, ~30 INSERTS/second. If you are choosing a DB today, take a look at &lt;a href=&quot;https://blog.timescale.com/timescaledb-vs-6a696248104e&quot;&gt;TimescaleDB&lt;/a&gt;. It may be a better option if you would like to admin it yourself.&lt;/p&gt;
-
-&lt;p&gt;Since it’s a websocket related application, NodeJS is an obvious choice. I used TypeScript because of self-documentation and auto-suggestion.&lt;/p&gt;
-
-&lt;p&gt;```typescript
-import * as pg from ‘pg’;
-const config = require(“../config/db.json”);&lt;/p&gt;
-
-&lt;p&gt;const pool = new pg.Pool(config);&lt;/p&gt;
-
-&lt;p&gt;export async function createTableForPair(pair: string) : Promise&lt;boolean&gt; {
-  const client = await pool.connect()
-  try {
-    await client.query(`
-    CREATE TABLE IF NOT EXISTS orderbook_${pair}
-    (
-        id SERIAL PRIMARY KEY NOT NULL,
-        seq INTEGER NOT NULL,
-        is_trade BOOLEAN,
-        is_bid BOOLEAN,
-        price DOUBLE PRECISION,
-        size DOUBLE PRECISION,
-        ts DOUBLE PRECISION,
-        trade_id INTEGER,
-        type INTEGER
-    );
-    CREATE UNIQUE INDEX IF NOT EXISTS
-      orderbook_${pair}_id_uindex ON orderbook_${pair} (id);&lt;/boolean&gt;&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;CREATE TABLE IF NOT EXISTS orderbook_snapshot_${pair}
-(
-    id SERIAL PRIMARY KEY NOT NULL,
-    seq INTEGER NOT NULL,
-    snapshot JSON NOT NULL
-);
-CREATE UNIQUE INDEX IF NOT EXISTS
-  orderbook_snapshot_${pair}_id_uindex ON orderbook_snapshot_${pair} (id);
-`);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;} finally {
-    client.release()
-  }&lt;/p&gt;
-
-&lt;p&gt;return true;
-}&lt;/p&gt;
-
-&lt;p&gt;```&lt;/p&gt;
-
-&lt;p&gt;Here we are using a connection pool because this software makes frequent queries. Connecting a new client to the PostgreSQL server requires a handshake which can take 20-30 milliseconds. During this time passwords are negotiated, SSL may be established, and configuration information is shared with the client &amp;amp; server. Incurring this cost every time we want to execute a query would substantially slow down our application.&lt;/p&gt;
-
-&lt;p&gt;The caveat is that you must always return the client to the pool if you successfully check it out, regardless of whether or not there was an error with the queries you ran on the client. If you don’t check in the client your application will leak them and eventually your pool will be empty forever and all future requests to check out a client from the pool will wait forever.&lt;/p&gt;
-
-&lt;p&gt;The pool will handle the consumer-producer threading issues.&lt;/p&gt;
-
-&lt;p&gt;So we create two tables, one for order book updates and one for orderbook snapshots. The latter is not strictly necessary. The field &lt;code class=&quot;highlighter-rouge&quot;&gt;seq&lt;/code&gt; is the Nounce because sometimes the websocket can scramble up the order so it’s the programmer’s job to re-arrange the updates in the right order. Also, we are storing filled trades with order book updates so there is no need to create another table. It’s differentiated with &lt;code class=&quot;highlighter-rouge&quot;&gt;is_trade&lt;/code&gt; field. &lt;code class=&quot;highlighter-rouge&quot;&gt;ts&lt;/code&gt; is the timestamp. &lt;code class=&quot;highlighter-rouge&quot;&gt;trade_id&lt;/code&gt; is the internal trade id. Needless to say, the table is index by &lt;code class=&quot;highlighter-rouge&quot;&gt;id&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;This function is accompanied by &lt;code class=&quot;highlighter-rouge&quot;&gt;tableExistsForPair&lt;/code&gt;. The script checks if the tables are created during init.&lt;/p&gt;
-
-&lt;p&gt;```typescript
-async function initTables(markets : string[]) {
-    let pairs = markets.map(toPair);&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;let create = await Promise.all(
-    pairs.map(pair =&amp;gt; new Promise(async (resolve, reject) =&amp;gt; {
-        let exists = await tableExistsForPair(pair);
-        if (!exists) {
-            console.log(`${pair} table does not exist. Creating...`)
-            await createTableForPair(pair);
-        }
-        resolve(true);
-    }))
-);
-
-console.log(&quot;Double checking...&quot;);
-let created = await Promise.all(pairs.map(tableExistsForPair));
-for (let i = 0; i &amp;lt; created.length; i++) {
-    if (!created[i]) {
-        throw `Table for &#39;${pairs[i]}&#39; cannot be created.`;
-    }
-} } ```
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;We use &lt;code class=&quot;highlighter-rouge&quot;&gt;await Promise.all()&lt;/code&gt; to concurrently run multiple DB requests instead of serially awaiting each one to finish. You always want to double check failed queries.&lt;/p&gt;
-
-&lt;h1 id=&quot;listen-for-updates&quot;&gt;Listen for Updates&lt;/h1&gt;
-
-&lt;p&gt;First, to add some joy to development, let’s get the types of JSON objects emitted defined using TypeScript interface. This is where TypeScript really comes in handy. My only gripe with TypeScript is the lack of a real &lt;a href=&quot;https://wiki.haskell.org/Bottom&quot;&gt;bottom&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;```typescript
-export interface ExchangeState {
-     H: string, // Hub
-     M: “updateExchangeState”,
-     A: [ExchangeStateUpdate]
-}&lt;/p&gt;
-
-&lt;p&gt;export type Side = “SELL” | “BUY”;
-export type UpdateType = 0 // new order entries at matching price, add to orderbook
-                       | 1 // cancelled / filled order entries at matching price, delete from orderbook
-                       | 2 // changed order entries at matching price (partial fills, cancellations), edit in orderbook
-                       ;&lt;/p&gt;
-
-&lt;p&gt;export interface ExchangeStateUpdate {
-    MarketName: string,
-    Nounce: number,
-    Buys: [Buy],
-    Sells: [Sell],
-    Fills: [Fill]
-}&lt;/p&gt;
-
-&lt;p&gt;export type Sell = Buy;&lt;/p&gt;
-
-&lt;p&gt;export interface Buy {
-    Type: UpdateType,
-    Rate: number,
-    Quantity: number
-}&lt;/p&gt;
-
-&lt;p&gt;export interface Fill {
-    OrderType: Side,
-    Rate: number,
-    Quantity: number,
-    TimeStamp: string,
-}&lt;/p&gt;
-
-&lt;p&gt;//================================&lt;/p&gt;
-
-&lt;p&gt;export interface SummaryState {
-    H: string,
-    M: “updateSummaryState”,
-    A: [SummaryStateUpdate]
-}&lt;/p&gt;
-
-&lt;p&gt;export interface SummaryStateUpdate {
-    Nounce: number,
-    Deltas: [PairUpdate] 
-}&lt;/p&gt;
-
-&lt;p&gt;export interface PairUpdate {
-    MarketName: string,
-    High: number
-    Low: number,
-    Volume: number,
-    Last: number,
-    BaseVolume: number,
-    TimeStamp: string,
-    Bid: number,
-    Ask: number,
-    OpenBuyOrders: number,
-    OpenSellOrders: number,
-    PrevDay: number,
-    Created: string
-}&lt;/p&gt;
-
-&lt;p&gt;//================================&lt;/p&gt;
-
-&lt;p&gt;export interface UnhandledData {
-    unhandled_data: {
-        R: boolean, // true, 
-        I: string,  // ‘1’
-    }
-}&lt;/p&gt;
-
-&lt;p&gt;//================================
-//callbacks&lt;/p&gt;
-
-&lt;p&gt;export type ExchangeCallback = (value: ExchangeStateUpdate, index?: number, array?: ExchangeStateUpdate[]) =&amp;gt; void 
-export type SummaryCallback = (value: PairUpdate, index?: number, array?: PairUpdate[]) =&amp;gt; void&lt;/p&gt;
-
-&lt;p&gt;//================================
-//db updates&lt;/p&gt;
-
-&lt;p&gt;export interface DBUpdate {
-    pair: string,
-    seq: number,
-    is_trade: boolean,
-    is_bid: boolean,
-    price: number,
-    size: number,
-    timestamp: number,
-    type: number
-}
-```&lt;/p&gt;
-
-&lt;p&gt;Next we want to listen to the websocket and dump everything update to the database.&lt;/p&gt;
-
-&lt;p&gt;```typescript
-// get an array of market names
-function allMarkets() : Promise&amp;lt;[string]&amp;gt; {
-    return new Promise((resolve, reject) =&amp;gt; {
-        bittrex.getmarketsummaries( function( data : any, err : never) {
-            if (err) reject(err);
-            const ret = data.result.map((market : PairUpdate) =&amp;gt; market.MarketName)
-            resolve(ret);
-        });
-    });
-}&lt;/p&gt;
-
-&lt;p&gt;// Formats a JSON object into a DBUpdate object
-function formatUpdate(v : ExchangeStateUpdate) : DBUpdate[] {
-    let updates : DBUpdate[] = [];&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;const pair = toPair(v.MarketName);
-const seq = v.Nounce;
-const timestamp = Date.now() / 1000;
-
-v.Buys.forEach(buy =&amp;gt; {
-    updates.push(
-        {
-            pair,
-            seq,
-            is_trade: false,
-            is_bid: true,
-            price: buy.Rate,
-            size: buy.Quantity,
-            timestamp,
-            type: buy.Type
-        }
-    );
-});
-
-v.Sells.forEach(sell =&amp;gt; {
-    updates.push(
-        {
-            pair,
-            seq,
-            is_trade: false,
-            is_bid: false,
-            price: sell.Rate,
-            size: sell.Quantity,
-            timestamp,
-            type: sell.Type
-        }
-    );
-});
-
-v.Fills.forEach(fill =&amp;gt; {
-    updates.push(
-        {
-            pair,
-            seq,
-            is_trade: true,
-            is_bid: fill.OrderType === &quot;BUY&quot;,
-            price: fill.Rate,
-            size: fill.Quantity,
-            timestamp: (new Date(fill.TimeStamp)).getTime() / 1000,
-            type: null
-        }
-    );
-})
-
-return updates; }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;async function watch() {
-    try {
-        let mkts = await allMarkets()&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    await initTables(mkts);
-    console.log(&quot;Tables created.&quot;);
-
-    listen(mkts, (v, i, a) =&amp;gt; {
-        let updates : DBUpdate[] = formatUpdate(v);
-        updates.forEach(update =&amp;gt; {
-            const { pair, seq, is_trade, is_bid, price, size, timestamp, type } = update;
-            saveUpdate(pair, seq, is_trade, is_bid, price, size, timestamp, type);
-        });
-    });
-
-} catch (e) {
-    console.log(e);
-    throw e;
-} }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;let main = watch;&lt;/p&gt;
-
-&lt;p&gt;main();
-```&lt;/p&gt;
-
-&lt;p&gt;To start the program, just call &lt;code class=&quot;highlighter-rouge&quot;&gt;watch()&lt;/code&gt;. As you can see, this code is highly modular and development was a breeze.&lt;/p&gt;
-
-&lt;p&gt;With a copy of the order book securely stored in the database, we can replay and reconstruct the order book at any given moment. Next post will cover order book reconstruction, visualization and unusual discoveries. Stay tuned!&lt;/p&gt;
-</description>
-        <pubDate>Sat, 09 Sep 2017 11:05:01 -0400</pubDate>
-        <link>http://rickyhan.com/jekyll/update/2017/09/09/import-orderbook-from-exchanges.html</link>
-        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/09/09/import-orderbook-from-exchanges.html</guid>
-        
-        
-        <category>jekyll</category>
-        
-        <category>update</category>
-        
-      </item>
-    
-      <item>
-        <title>Solving Captchas with Simulated GAN</title>
-        <description>&lt;p&gt;With simulated unsupervised learning, breaking captchas has never been easier. There is no need to label any captchas manually for convnet. By using a captcha synthesizer and a refiner trained with GAN, it’s feasible to generate synthesized training pairs for classification captchas.&lt;/p&gt;
-
-&lt;h2 id=&quot;link-to-paper-simgan-by-apple&quot;&gt;Link to paper: SimGAN by Apple&lt;/h2&gt;
-
-&lt;p&gt;&lt;a href=&quot;https://arxiv.org/pdf/1612.07828v1.pdf&quot;&gt;PDF&lt;/a&gt;
-&lt;a href=&quot;https://machinelearning.apple.com/2017/07/07/GAN.html&quot;&gt;HTML&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;http://www.fudzilla.com/images/stories/2016/December/apple-simgan-generative-adversarial-networks.jpg&quot; alt=&quot;SimGAN&quot; /&gt;&lt;/p&gt;
-
-&lt;h1 id=&quot;the-task&quot;&gt;The task&lt;/h1&gt;
-
-&lt;p&gt;&lt;a href=&quot;https://captcha.delorean.codes/u/rickyhan/&quot;&gt;HackMIT Puzzle #5&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;Correctly label 10000 out of 15000 captcha or 90% per character.&lt;/p&gt;
-
-&lt;h2 id=&quot;preprocessing&quot;&gt;Preprocessing&lt;/h2&gt;
-
-&lt;h3 id=&quot;download-target-captcha-files&quot;&gt;Download target captcha files&lt;/h3&gt;
-
-&lt;p&gt;Here we download some captchas from the contest website. Each batch has 1000 captchas. We’ll use 20000 so 20 batches.&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-import requests
-import threading
-URL = &quot;https://captcha.delorean.codes/u/rickyhan/challenge&quot;
-DIR = &quot;challenges/&quot;
-NUM_CHALLENGES = 20
-lock = threading.Lock()
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;```python
-def download_file(url, fname):
-    # NOTE the stream=True parameter
-    r = requests.get(url, stream=True)
-    with open(fname, ‘wb’) as f:
-        for chunk in r.iter_content(chunk_size=1024): 
-            if chunk: # filter out keep-alive new chunks
-                f.write(chunk)
-                #f.flush() commented by recommendation from J.F.Sebastian
-    with lock:
-        pass
-        # print fname&lt;/p&gt;
-
-&lt;p&gt;ts = []
-for i in range(NUM_CHALLENGES):
-    fname = DIR + “challenge-{}”.format(i)
-    t = threading.Thread(target=download_file, args=(URL, fname))
-    ts.append(t)
-    t.start()
-for t in ts:
-    t.join()
-print “Done”
-```&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Done
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;h3 id=&quot;decompression&quot;&gt;Decompression&lt;/h3&gt;
-
-&lt;p&gt;Each challenge file is actually a json object containing 1000 base64 encoded jpg image file. So for each of these challenge files, we decompress each base64 strs into a jpeg and put that under a seprate folder.&lt;/p&gt;
-
-&lt;p&gt;```python
-import json, base64, os
-IMG_DIR = “./orig”
-fnames = [”{}/challenge-{}”.format(DIR, i) for i in range(NUM_CHALLENGES)]
-if not os.path.exists(IMG_DIR):
-    os.mkdir(IMG_DIR)
-def save_imgs(fname):
-    with open(fname) as f:
-        l = json.loads(f.read())&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;for image in l[&#39;images&#39;]:
-    b = base64.decodestring(image[&#39;jpg_base64&#39;])
-    name = image[&#39;name&#39;]
-    with open(IMG_DIR+&quot;/{}.jpg&quot;.format(name), &#39;w&#39;) as f:
-        f.write(b)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;for fname in fnames:
-    save_imgs(fname)
-assert len(os.listdir(IMG_DIR)) == 1000 * NUM_CHALLENGES
-```&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-from PIL import Image
-imgpath = IMG_DIR + &quot;/&quot;+ os.listdir(IMG_DIR)[0]
-imgpath2 = IMG_DIR + &quot;/&quot;+ os.listdir(IMG_DIR)[3]
-im = Image.open(example_image_path)
-im2 = Image.open(example_image_path2)
-IMG_FNAMES = [IMG_DIR + &#39;/&#39; + p for p in os.listdir(IMG_DIR)]
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-im
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_8_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-im2
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_9_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;h3 id=&quot;convert-to-black-and-white&quot;&gt;Convert to black and white&lt;/h3&gt;
-&lt;p&gt;Instead of RGB, binarized image saves significant compute. Here we hardcode a threshold and iterate over each pixel to obtain a binary image.&lt;/p&gt;
-
-&lt;p&gt;```python
-def gray(img_path):
-    # convert to grayscale, then binarize
-    img = Image.open(img_path).convert(“L”)
-    img = img.point(lambda x: 255 if x &amp;gt; 200 or x == 0 else x) # value found through T&amp;amp;E
-    img = img.point(lambda x: 0 if x &amp;lt; 255 else 255, “1”)
-    img.save(img_path)&lt;/p&gt;
-
-&lt;p&gt;for img_path in IMG_FNAMES:
-    gray(img_path)
-```&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-im = Image.open(example_image_path)
-im
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_12_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;h3 id=&quot;find-mask&quot;&gt;Find mask&lt;/h3&gt;
-
-&lt;p&gt;As you may have noticed, all the captchas share the same horizontal lines. Since this is a contest, it was a function of participant’s username. In the real world, these noises can be filtered out using morphological transformation with OpenCV.&lt;/p&gt;
-
-&lt;p&gt;We will extract and save the lines(noise) for later use. Here we average all 20000 captchas and set a threshold as above. Another method is using a bit mask (&amp;amp;=) to iteratively filter out surrounding black pixels i.e.&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
-mask = np.ones((height, width))
-for im in ims:
-    mask &amp;amp;= im
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;The effectiveness of bit mask depends on how clean the binarized data is. With the averaging method, some error is allowed.&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-import numpy as np
-WIDTH, HEIGHT = im.size
-MASK_DIR = &quot;avg.png&quot;
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;```python
-def generateMask():
-    N=1000*NUM_CHALLENGES
-    arr=np.zeros((HEIGHT, WIDTH),np.float)
-    for fname in IMG_FNAMES:
-        imarr=np.array(Image.open(fname),dtype=np.float)
-        arr=arr+imarr/N
-    arr=np.array(np.round(arr),dtype=np.uint8)
-    out=Image.fromarray(arr,mode=”L”)
-    out.save(MASK_DIR)&lt;/p&gt;
-
-&lt;p&gt;generateMask()
-```&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-im = Image.open(MASK_DIR) # ok this can be done with binary mask: &amp;amp;=
-im
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_16_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-im = Image.open(MASK_DIR)
-im = im.point(lambda x:255 if x &amp;gt; 230 else x)
-im = im.point(lambda x:0 if x&amp;lt;255 else 255, &quot;1&quot;)
-im.save(MASK_DIR)
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-im
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_18_0.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;h1 id=&quot;generator-for-real-captchas&quot;&gt;Generator for real captchas&lt;/h1&gt;
-
-&lt;p&gt;Using a Keras built in generator function &lt;code class=&quot;highlighter-rouge&quot;&gt;flow_from_directory&lt;/code&gt; to automatically import and preprocess real captchas from a folder.&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-from keras import models
-from keras import layers
-from keras import optimizers
-from keras import applications
-from keras.preprocessing import image
-import tensorflow as tf
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;```python
-# Real data generator&lt;/p&gt;
-
-&lt;p&gt;datagen = image.ImageDataGenerator(
-    preprocessing_function=applications.xception.preprocess_input
-)&lt;/p&gt;
-
-&lt;p&gt;flow_from_directory_params = {‘target_size’: (HEIGHT, WIDTH),
-                              ‘color_mode’: ‘grayscale’,
-                              ‘class_mode’: None,
-                              ‘batch_size’: BATCH_SIZE}&lt;/p&gt;
-
-&lt;p&gt;real_generator = datagen.flow_from_directory(
-        directory=”.”,
-        **flow_from_directory_params
-)
-```&lt;/p&gt;
-
-&lt;h1 id=&quot;dumb-generator&quot;&gt;(Dumb) Generator&lt;/h1&gt;
-
-&lt;p&gt;Now that we have processed all the real captchas, we need to define a generator that outputs (captcha, label) pairs where the captchas should look almost like the real ones.&lt;/p&gt;
-
-&lt;p&gt;We filter out the outliers that contain overlapping characters.&lt;/p&gt;
-
-&lt;p&gt;```python
-# Synthetic captcha generator
-from PIL import ImageFont, ImageDraw
-from random import choice, random
-from string import ascii_lowercase, digits
-alphanumeric = ascii_lowercase + digits&lt;/p&gt;
-
-&lt;p&gt;def fuzzy_loc(locs):
-    acc = []
-    for i,loc in enumerate(locs[:-1]):
-        if locs[i+1] - loc &amp;lt; 8:
-            continue
-        else:
-            acc.append(loc)
-    return acc&lt;/p&gt;
-
-&lt;p&gt;def seg(img):
-    arr = np.array(img, dtype=np.float)
-    arr = arr.transpose()
-    # arr = np.mean(arr, axis=2)
-    arr = np.sum(arr, axis=1)
-    locs = np.where(arr &amp;lt; arr.min() + 2)[0].tolist()
-    locs = fuzzy_loc(locs)
-    return locs&lt;/p&gt;
-
-&lt;p&gt;def is_well_formed(img_path):
-    original_img = Image.open(img_path)
-    img = original_img.convert(‘1’)
-    return len(seg(img)) == 4&lt;/p&gt;
-
-&lt;p&gt;noiseimg = np.array(Image.open(“avg.png”).convert(“1”))
-# noiseimg = np.bitwise_not(noiseimg)
-fnt = ImageFont.truetype(‘./arial-extra.otf’, 26)
-def gen_one():
-    og = Image.new(“1”, (100,50))
-    text = ‘‘.join([choice(alphanumeric) for _ in range(4)])
-    draw = ImageDraw.Draw(og)
-    for i, t in enumerate(text):
-        txt=Image.new(‘L’, (40,40))
-        d = ImageDraw.Draw(txt)
-        d.text( (0, 0), t,  font=fnt, fill=255)
-        if random() &amp;gt; 0.5:
-            w=txt.rotate(-20&lt;em&gt;(random()-1),  expand=1)
-            og.paste( w, (i&lt;/em&gt;20 + int(25&lt;em&gt;random()), int(25+30&lt;/em&gt;(random()-1))),  w)
-        else:
-            w=txt.rotate(20&lt;em&gt;(random()-1),  expand=1)
-            og.paste( w, (i&lt;/em&gt;20 + int(25&lt;em&gt;random()), int(20&lt;/em&gt;random())),  w)
-    segments = seg(og)
-    if len(segments) != 4:
-        return gen_one()
-    ogarr = np.array(og)
-    ogarr = np.bitwise_or(noiseimg, ogarr)
-    ogarr = np.expand_dims(ogarr, axis=2).astype(float)
-    ogarr = np.random.random(size=(50,100,1)) * ogarr
-    ogarr = (ogarr &amp;gt; 0.0).astype(float) # add noise
-    return ogarr, text&lt;/p&gt;
-
-&lt;p&gt;def synth_generator():
-    arrs = []
-    while True:
-        for _ in range(BATCH_SIZE):
-            arrs.append(gen_one()[0])
-        yield np.array(arrs)
-        arrs = []
-```&lt;/p&gt;
-
-&lt;p&gt;```python
-def get_image_batch(generator):
-    “&quot;”keras generators may generate an incomplete batch for the last batch”””
-    img_batch = generator.next()
-    if len(img_batch) != BATCH_SIZE:
-        img_batch = generator.next()&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;assert len(img_batch) == BATCH_SIZE
-
-return img_batch ```
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-import matplotlib.pyplot as plt
-imarr = get_image_batch(real_generator)[0, :, :, 0]
-plt.imshow(imarr)
-&lt;/code&gt;
-&lt;img src=&quot;/static/imgs/output_25_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-imarr = get_image_batch(synth_generator())[0, :, :, 0]
-print imarr.shape
-plt.imshow(imarr)
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;(50, 100)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_26_2.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;h1 id=&quot;what-happened-next&quot;&gt;What happened next?&lt;/h1&gt;
-
-&lt;p&gt;Plug all the data in an MNIST-like classifier and call it a day. Unfortunately, it’s not that simple.&lt;/p&gt;
-
-&lt;p&gt;I actually spent a long time fine-tuning the network but accuracy plateued around 55% sampled. The passing requirement is 10000 out of 15000 submitted or 90% accuracy or 66% per char. I was facing a dilemma: tune the model even further or manually label x amount of data: 
-&lt;code class=&quot;highlighter-rouge&quot;&gt;
-0.55 * (15000-x) + x = 10000
-                   x = 3888
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;Obviously I am not going to label 4000 captchas and break my neck in the process.&lt;/p&gt;
-
-&lt;p&gt;Meanwhile, there happened a burnt out guy who decided to label all 10000 captchas. This dilligent dude was 2000 in. I asked if he is willing to collaborate on a solution. It’s almost like he didn’t want to label captchas anymore. He agreed immediately.&lt;/p&gt;
-
-&lt;p&gt;Using the same model, accuracy immediately shot up to 95% and we both qualified for HackMIT.&lt;/p&gt;
-
-&lt;p&gt;/aside&lt;/p&gt;
-
-&lt;p&gt;After the contest, I perfected the model and got 95% without labelling a single image. Here is the model for SimGAN:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;http://www.fudzilla.com/images/stories/2016/December/apple-simgan-generative-adversarial-networks.jpg&quot; alt=&quot;SimGAN&quot; /&gt;&lt;/p&gt;
-
-&lt;h1 id=&quot;model-definition&quot;&gt;Model Definition&lt;/h1&gt;
-
-&lt;p&gt;There are three components to the network:&lt;/p&gt;
-
-&lt;h3 id=&quot;refiner&quot;&gt;Refiner&lt;/h3&gt;
-
-&lt;p&gt;The refiner network, Rθ, is a residual network (ResNet). It modifies the synthetic image on a pixel level, rather than holistically modifying the image content, preserving the global structure and annotations.&lt;/p&gt;
-
-&lt;h3 id=&quot;discriminator&quot;&gt;Discriminator&lt;/h3&gt;
-
-&lt;p&gt;The discriminator network Dφ, is a simple ConvNet that contains 5 conv layers and 2 max-pooling layers. It’s abinary classifier that outputs whether a captcha is synthesized or real.&lt;/p&gt;
-
-&lt;h3 id=&quot;combined&quot;&gt;Combined&lt;/h3&gt;
-
-&lt;p&gt;Pipe the refined image into discriminator.&lt;/p&gt;
-
-&lt;p&gt;```python
-def refiner_network(input_image_tensor):
-    “””
-    :param input_image_tensor: Input tensor that corresponds to a synthetic image.
-    :return: Output tensor that corresponds to a refined synthetic image.
-    “””
-    def resnet_block(input_features, nb_features=64, nb_kernel_rows=3, nb_kernel_cols=3):
-        “””
-        A ResNet block with two &lt;code class=&quot;highlighter-rouge&quot;&gt;nb_kernel_rows&lt;/code&gt; x &lt;code class=&quot;highlighter-rouge&quot;&gt;nb_kernel_cols&lt;/code&gt; convolutional layers,
-        each with &lt;code class=&quot;highlighter-rouge&quot;&gt;nb_features&lt;/code&gt; feature maps.
-        See Figure 6 in https://arxiv.org/pdf/1612.07828v1.pdf.
-        :param input_features: Input tensor to ResNet block.
-        :return: Output tensor from ResNet block.
-        “””
-        y = layers.Convolution2D(nb_features, nb_kernel_rows, nb_kernel_cols, border_mode=’same’)(input_features)
-        y = layers.Activation(‘relu’)(y)
-        y = layers.Convolution2D(nb_features, nb_kernel_rows, nb_kernel_cols, border_mode=’same’)(y)&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    y = layers.merge([input_features, y], mode=&#39;sum&#39;)
-    return layers.Activation(&#39;relu&#39;)(y)
-
-# an input image of size w × h is convolved with 3 × 3 filters that output 64 feature maps
-x = layers.Convolution2D(64, 3, 3, border_mode=&#39;same&#39;, activation=&#39;relu&#39;)(input_image_tensor)
-
-# the output is passed through 4 ResNet blocks
-for _ in range(4):
-    x = resnet_block(x)
-
-# the output of the last ResNet block is passed to a 1 × 1 convolutional layer producing 1 feature map
-# corresponding to the refined synthetic image
-return layers.Convolution2D(1, 1, 1, border_mode=&#39;same&#39;, activation=&#39;tanh&#39;)(x)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;def discriminator_network(input_image_tensor):
-    “””
-    :param input_image_tensor: Input tensor corresponding to an image, either real or refined.
-    :return: Output tensor that corresponds to the probability of whether an image is real or refined.
-    “””
-    x = layers.Convolution2D(96, 3, 3, border_mode=’same’, subsample=(2, 2), activation=’relu’)(input_image_tensor)
-    x = layers.Convolution2D(64, 3, 3, border_mode=’same’, subsample=(2, 2), activation=’relu’)(x)
-    x = layers.MaxPooling2D(pool_size=(3, 3), border_mode=’same’, strides=(1, 1))(x)
-    x = layers.Convolution2D(32, 3, 3, border_mode=’same’, subsample=(1, 1), activation=’relu’)(x)
-    x = layers.Convolution2D(32, 1, 1, border_mode=’same’, subsample=(1, 1), activation=’relu’)(x)
-    x = layers.Convolution2D(2, 1, 1, border_mode=’same’, subsample=(1, 1), activation=’relu’)(x)&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;# here one feature map corresponds to `is_real` and the other to `is_refined`,
-# and the custom loss function is then `tf.nn.sparse_softmax_cross_entropy_with_logits`
-return layers.Reshape((-1, 2))(x)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;h1 id=&quot;refiner-1&quot;&gt;Refiner&lt;/h1&gt;
-&lt;p&gt;synthetic_image_tensor = layers.Input(shape=(HEIGHT, WIDTH, 1))
-refined_image_tensor = refiner_network(synthetic_image_tensor)
-refiner_model = models.Model(input=synthetic_image_tensor, output=refined_image_tensor, name=’refiner’)&lt;/p&gt;
-
-&lt;h1 id=&quot;discriminator-1&quot;&gt;Discriminator&lt;/h1&gt;
-&lt;p&gt;refined_or_real_image_tensor = layers.Input(shape=(HEIGHT, WIDTH, 1))
-discriminator_output = discriminator_network(refined_or_real_image_tensor)
-discriminator_model = models.Model(input=refined_or_real_image_tensor, output=discriminator_output,
-                                   name=’discriminator’)&lt;/p&gt;
-
-&lt;h1 id=&quot;combined-1&quot;&gt;Combined&lt;/h1&gt;
-&lt;p&gt;refiner_model_output = refiner_model(synthetic_image_tensor)
-combined_output = discriminator_model(refiner_model_output)
-combined_model = models.Model(input=synthetic_image_tensor, output=[refiner_model_output, combined_output],
-                              name=’combined’)&lt;/p&gt;
-
-&lt;p&gt;def self_regularization_loss(y_true, y_pred):
-    delta = 0.0001  # FIXME: need to figure out an appropriate value for this
-    return tf.multiply(delta, tf.reduce_sum(tf.abs(y_pred - y_true)))&lt;/p&gt;
-
-&lt;h1 id=&quot;define-custom-local-adversarial-loss-softmax-for-each-image-section-for-the-discriminator&quot;&gt;define custom local adversarial loss (softmax for each image section) for the discriminator&lt;/h1&gt;
-&lt;p&gt;# the adversarial loss function is the sum of the cross-entropy losses over the local patches
-def local_adversarial_loss(y_true, y_pred):
-    # y_true and y_pred have shape (batch_size, # of local patches, 2), but really we just want to average over
-    # the local patches and batch size so we can reshape to (batch_size * # of local patches, 2)
-    y_true = tf.reshape(y_true, (-1, 2))
-    y_pred = tf.reshape(y_pred, (-1, 2))
-    loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred)&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;return tf.reduce_mean(loss)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;h1 id=&quot;compile-models&quot;&gt;compile models&lt;/h1&gt;
-&lt;p&gt;BATCH_SIZE = 512
-sgd = optimizers.RMSprop()&lt;/p&gt;
-
-&lt;p&gt;refiner_model.compile(optimizer=sgd, loss=self_regularization_loss)
-discriminator_model.compile(optimizer=sgd, loss=local_adversarial_loss)
-discriminator_model.trainable = False
-combined_model.compile(optimizer=sgd, loss=[self_regularization_loss, local_adversarial_loss])
-```&lt;/p&gt;
-
-&lt;h1 id=&quot;pre-training&quot;&gt;Pre-training&lt;/h1&gt;
-
-&lt;p&gt;It is not necessary to pre-train GANs but it seems pretraining makes GANs converge faster. Here we pre-train both models. For the refiner, we train by supplying the identity. For the discriminator, we train with the correct real, synth labeled pairs.&lt;/p&gt;
-
-&lt;p&gt;```python
-# the target labels for the cross-entropy loss layer are 0 for every yj (real) and 1 for every xi (refined)&lt;/p&gt;
-
-&lt;p&gt;y_real = np.array([[[1.0, 0.0]] * discriminator_model.output_shape[1]] * BATCH_SIZE)
-y_refined = np.array([[[0.0, 1.0]] * discriminator_model.output_shape[1]] * BATCH_SIZE)
-assert y_real.shape == (BATCH_SIZE, discriminator_model.output_shape[1], 2)
-```&lt;/p&gt;
-
-&lt;p&gt;```python
-LOG_INTERVAL = 10
-MODEL_DIR = “./model/”
-print(‘pre-training the refiner network…’)
-gen_loss = np.zeros(shape=len(refiner_model.metrics_names))&lt;/p&gt;
-
-&lt;p&gt;for i in range(100):
-    synthetic_image_batch = get_image_batch(synth_generator())
-    gen_loss = np.add(refiner_model.train_on_batch(synthetic_image_batch, synthetic_image_batch), gen_loss)&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;# log every `log_interval` steps
-if not i % LOG_INTERVAL:
-    print(&#39;Refiner model self regularization loss: {}.&#39;.format(gen_loss / LOG_INTERVAL))
-    gen_loss = np.zeros(shape=len(refiner_model.metrics_names))
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;refiner_model.save(os.path.join(MODEL_DIR, ‘refiner_model_pre_trained.h5’))&lt;/p&gt;
-
-&lt;p&gt;```&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;pre-training the refiner network...
-Saving batch of refined images during pre-training at step: 0.
-Refiner model self regularization loss: [ 0.05277019].
-Saving batch of refined images during pre-training at step: 10.
-Refiner model self regularization loss: [ 4.2269813].
-Saving batch of refined images during pre-training at step: 20.
-Refiner model self regularization loss: [ 0.76108101].
-Saving batch of refined images during pre-training at step: 30.
-Refiner model self regularization loss: [ 0.28633648].
-Saving batch of refined images during pre-training at step: 40.
-Refiner model self regularization loss: [ 0.19448772].
-Saving batch of refined images during pre-training at step: 50.
-Refiner model self regularization loss: [ 0.16131182].
-Saving batch of refined images during pre-training at step: 60.
-Refiner model self regularization loss: [ 0.11931724].
-Saving batch of refined images during pre-training at step: 70.
-Refiner model self regularization loss: [ 0.11075923].
-Saving batch of refined images during pre-training at step: 80.
-Refiner model self regularization loss: [ 0.10888441].
-Saving batch of refined images during pre-training at step: 90.
-Refiner model self regularization loss: [ 0.10765313].
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;```python
-from tqdm import tqdm
-print(‘pre-training the discriminator network…’)
-disc_loss = np.zeros(shape=len(discriminator_model.metrics_names))&lt;/p&gt;
-
-&lt;p&gt;for _ in tqdm(range(100)):
-    real_image_batch = get_image_batch(real_generator)
-    disc_loss = np.add(discriminator_model.train_on_batch(real_image_batch, y_real), disc_loss)&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;synthetic_image_batch = get_image_batch(synth_generator())
-refined_image_batch = refiner_model.predict_on_batch(synthetic_image_batch)
-disc_loss = np.add(discriminator_model.train_on_batch(refined_image_batch, y_refined), disc_loss)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;discriminator_model.save(os.path.join(MODEL_DIR, ‘discriminator_model_pre_trained.h5’))&lt;/p&gt;
-
-&lt;h1 id=&quot;hard-coded-for-now&quot;&gt;hard-coded for now&lt;/h1&gt;
-&lt;p&gt;print(‘Discriminator model loss: {}.’.format(disc_loss / (100 * 2)))
-```&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;pre-training the discriminator network...
-Discriminator model loss: [ 0.04783788].
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;h1 id=&quot;training&quot;&gt;Training&lt;/h1&gt;
-
-&lt;p&gt;This is the most important training step in which we refine a synthesized captcha, then pass it through the discriminator and backprop gradients.&lt;/p&gt;
-
-&lt;p&gt;```python
-from image_history_buffer import ImageHistoryBuffer&lt;/p&gt;
-
-&lt;p&gt;k_d = 1  # number of discriminator updates per step
-k_g = 2  # number of generative network updates per step
-nb_steps = 1000&lt;/p&gt;
-
-&lt;h1 id=&quot;todo-what-is-an-appropriate-size-for-the-image-history-buffer&quot;&gt;TODO: what is an appropriate size for the image history buffer?&lt;/h1&gt;
-&lt;p&gt;image_history_buffer = ImageHistoryBuffer((0, HEIGHT, WIDTH, 1), BATCH_SIZE * 100, BATCH_SIZE)&lt;/p&gt;
-
-&lt;p&gt;combined_loss = np.zeros(shape=len(combined_model.metrics_names))
-disc_loss_real = np.zeros(shape=len(discriminator_model.metrics_names))
-disc_loss_refined = np.zeros(shape=len(discriminator_model.metrics_names))&lt;/p&gt;
-
-&lt;h1 id=&quot;see-algorithm-1-in-httpsarxivorgpdf161207828v1pdf&quot;&gt;see Algorithm 1 in https://arxiv.org/pdf/1612.07828v1.pdf&lt;/h1&gt;
-&lt;p&gt;for i in range(nb_steps):
-    print(‘Step: {} of {}.’.format(i, nb_steps))&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;# train the refiner
-for _ in range(k_g * 2):
-    # sample a mini-batch of synthetic images
-    synthetic_image_batch = get_image_batch(synth_generator())
-
-    # update θ by taking an SGD step on mini-batch loss LR(θ)
-    combined_loss = np.add(combined_model.train_on_batch(synthetic_image_batch,
-                                                         [synthetic_image_batch, y_real]), combined_loss)
-
-for _ in range(k_d):
-    # sample a mini-batch of synthetic and real images
-    synthetic_image_batch = get_image_batch(synth_generator())
-    real_image_batch = get_image_batch(real_generator)
-
-    # refine the synthetic images w/ the current refiner
-    refined_image_batch = refiner_model.predict_on_batch(synthetic_image_batch)
-
-    # use a history of refined images
-    half_batch_from_image_history = image_history_buffer.get_from_image_history_buffer()
-    image_history_buffer.add_to_image_history_buffer(refined_image_batch)
-
-    if len(half_batch_from_image_history):
-        refined_image_batch[:batch_size // 2] = half_batch_from_image_history
-
-    # update φ by taking an SGD step on mini-batch loss LD(φ)
-    disc_loss_real = np.add(discriminator_model.train_on_batch(real_image_batch, y_real), disc_loss_real)
-    disc_loss_refined = np.add(discriminator_model.train_on_batch(refined_image_batch, y_refined),
-                               disc_loss_refined)
-
-if not i % LOG_INTERVAL:
-    # log loss summary
-    print(&#39;Refiner model loss: {}.&#39;.format(combined_loss / (LOG_INTERVAL * k_g * 2)))
-    print(&#39;Discriminator model loss real: {}.&#39;.format(disc_loss_real / (LOG_INTERVAL * k_d * 2)))
-    print(&#39;Discriminator model loss refined: {}.&#39;.format(disc_loss_refined / (LOG_INTERVAL * k_d * 2)))
-
-    combined_loss = np.zeros(shape=len(combined_model.metrics_names))
-    disc_loss_real = np.zeros(shape=len(discriminator_model.metrics_names))
-    disc_loss_refined = np.zeros(shape=len(discriminator_model.metrics_names))
-
-    # save model checkpoints
-    model_checkpoint_base_name = os.path.join(MODEL_DIR, &#39;{}_model_step_{}.h5&#39;)
-    refiner_model.save(model_checkpoint_base_name.format(&#39;refiner&#39;, i))
-    discriminator_model.save(model_checkpoint_base_name.format(&#39;discriminator&#39;, i))
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;```&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Step: 0 of 1000.
-Saving batch of refined images at adversarial step: 0.
-Refiner model loss: [ 2.46834831  0.01272553  2.45562277].
-Discriminator model loss real: [  2.27849432e-07].
-Discriminator model loss refined: [  1.63936726e-05].
-Step: 1 of 1000.
-Step: 2 of 1000.
-Step: 3 of 1000.
-Step: 4 of 1000.
-Step: 5 of 1000.
-Step: 6 of 1000.
-Step: 7 of 1000.
-Step: 8 of 1000.
-Step: 9 of 1000.
-Step: 10 of 1000.
-Saving batch of refined images at adversarial step: 10.
-Refiner model loss: [ 27.00968537   0.11238954  26.8972959 ].
-Discriminator model loss real: [  1.26835085e-10].
-Discriminator model loss refined: [  4.44882481e-08].
-Step: 11 of 1000.
-Step: 12 of 1000.
-Step: 13 of 1000.
-Step: 14 of 1000.
-Step: 15 of 1000.
-Step: 16 of 1000.
-Step: 17 of 1000.
-Step: 18 of 1000.
-Step: 19 of 1000.
-Step: 20 of 1000.
-Saving batch of refined images at adversarial step: 20.
-Refiner model loss: [ 26.89902883   0.10987803  26.78915081].
-Discriminator model loss real: [  1.48619811e-07].
-Discriminator model loss refined: [  4.60907181e-08].
-Step: 21 of 1000.
-Step: 22 of 1000.
-Step: 23 of 1000.
-Step: 24 of 1000.
-Step: 25 of 1000.
-Step: 26 of 1000.
-Step: 27 of 1000.
-Step: 28 of 1000.
-Step: 29 of 1000.
-Step: 30 of 1000.
-Saving batch of refined images at adversarial step: 30.
-Refiner model loss: [ 25.93090506   0.10890296  25.82200208].
-Discriminator model loss real: [  3.96611703e-09].
-Discriminator model loss refined: [  5.07067440e-08].
-Step: 31 of 1000.
-Step: 32 of 1000.
-Step: 33 of 1000.
-Step: 34 of 1000.
-Step: 35 of 1000.
-Step: 36 of 1000.
-Step: 37 of 1000.
-Step: 38 of 1000.
-Step: 39 of 1000.
-Step: 40 of 1000.
-Saving batch of refined images at adversarial step: 40.
-Refiner model loss: [ 28.67232819   2.33041485  26.34191332].
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;h1 id=&quot;results-of-simgan&quot;&gt;Results of SimGAN:&lt;/h1&gt;
-
-&lt;p&gt;As you can see below, we no longer have the cookie-cutter fonts. There are quite a few artifacts that did not exist before refinement. The edges are blurred and noisy - which is &lt;em&gt;impossible&lt;/em&gt; to simulate heuristically. And it is exactly these tiny things that renders MNIST-like convnet useless.&lt;/p&gt;
-
-&lt;p&gt;Now the refined results are basically the original captchas.&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-synthetic_image_batch = get_image_batch(synth_generator())
-arr = refiner_model.predict_on_batch(synthetic_image_batch)
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-plt.imshow(arr[200, :, :, 0])
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_38_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-plt.imshow(get_image_batch(real_generator)[2,:,:,0])
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_39_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;h1 id=&quot;mnist-for-captcha&quot;&gt;MNIST for Captcha&lt;/h1&gt;
-
-&lt;p&gt;Now we finish the puzzle by building an MNIST like convnet to predict captcha labels.&lt;/p&gt;
-
-&lt;p&gt;```python
-n_class = len(alphanumeric)&lt;/p&gt;
-
-&lt;p&gt;def mnist_raw_generator(batch_size=128):
-    X = np.zeros((batch_size, HEIGHT, WIDTH, 1), dtype=np.uint8)
-    y = [np.zeros((batch_size, n_class), dtype=np.uint8) for _ in range(4)] # 4 chars
-    while True:
-        for i in range(batch_size):
-            im, random_str = gen_one()
-            X[i] = im
-            for j, ch in enumerate(random_str):
-                y[j][i, :] = 0
-                y[j][i, alphanumeric.find(ch)] = 1
-        yield np.array(X), y&lt;/p&gt;
-
-&lt;p&gt;def mnist_generator(batch_size=128):
-    X = np.zeros((batch_size, HEIGHT, WIDTH, 1), dtype=np.uint8)
-    y = [np.zeros((batch_size, n_class), dtype=np.uint8) for _ in range(4)] # 4 chars
-    while True:
-        for i in range(batch_size):
-            im, random_str = gen_one()
-            X[i] = im
-            for j, ch in enumerate(random_str):
-                y[j][i, :] = 0
-                y[j][i, alphanumeric.find(ch)] = 1
-        yield refiner_model.predict(np.array(X)), y&lt;/p&gt;
-
-&lt;p&gt;mg = mnist_generator().next()&lt;/p&gt;
-
-&lt;h1 id=&quot;pltimshowmg000--sanity-check&quot;&gt;plt.imshow(mg[0][0,:,:,0]) # sanity check&lt;/h1&gt;
-&lt;p&gt;```&lt;/p&gt;
-
-&lt;p&gt;```python
-from keras.layers import *&lt;/p&gt;
-
-&lt;p&gt;input_tensor = Input((HEIGHT, WIDTH, 1))
-x = input_tensor
-x = Conv2D(32, kernel_size=(3, 3),
-                 activation=’relu’)(x)
-for _ in range(4):
-    x = Conv2D(128, (3, 3), activation=’relu’)(x)
-    x = MaxPooling2D(pool_size=(2, 2))(x)
-x = Dropout(0.25)(x)
-x = Flatten()(x)
-x = Dense(128, activation=’relu’)(x)
-x = Dropout(0.5)(x)
-x = [Dense(n_class, activation=’softmax’, name=’c%d’%(i+1))(x) for i in range(4)]&lt;/p&gt;
-
-&lt;p&gt;model = models.Model(inputs=input_tensor, outputs=x)
-model.compile(loss=’categorical_crossentropy’,
-              optimizer=’rmsprop’,
-              metrics=[‘accuracy’])
-```&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
-from keras.callbacks import History
-history = History()
-model.fit_generator(mnist_generator(), steps_per_epoch=1000, epochs=20, callbacks=[history])
-&lt;/code&gt;&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Epoch 1/20
- 341/1000 [=========&amp;gt;....................] - ETA: 376s - loss: 2.7648 - c1_loss: 0.6493 - c2_loss: 0.6757 - c3_loss: 0.6681 - c4_loss: 0.7717 - c1_acc: 0.8199 - c2_acc: 0.8185 - c3_acc: 0.8197 - c4_acc: 0.7820
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;Obviously you will need to keep training as the per-character accuracy is only 80%&lt;/p&gt;
-
-&lt;h1 id=&quot;lets-test-the-trained-model&quot;&gt;Let’s test the trained model&lt;/h1&gt;
-
-&lt;h2 id=&quot;synthetic&quot;&gt;Synthetic&lt;/h2&gt;
-
-&lt;p&gt;```python
-def decode(y):
-    y = np.argmax(np.array(y), axis=2)[:,0]
-    return ‘‘.join([alphanumeric[x] for x in y])&lt;/p&gt;
-
-&lt;p&gt;X, y = next(mnist_generator(1))
-plt.title(‘real: %s\npred:%s’%(decode(y), decode(y_pred)))
-plt.imshow(X[0, :, :, 0], cmap=’gray’)
-plt.axis(‘off’)
-```&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;(-0.5, 99.5, 49.5, -0.5)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_45_2.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;h2 id=&quot;real&quot;&gt;Real&lt;/h2&gt;
-
-&lt;p&gt;```python&lt;/p&gt;
-
-&lt;p&gt;X = next(real_generator)
-X = refiner_model.predict(X)
-y_pred = model.predict(X)
-plt.title(‘pred:%s’%(decode(y_pred)))
-plt.imshow(X[0,:,:,0], cmap=’gray’)
-plt.axis(‘off’)
-```&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;(-0.5, 99.5, 49.5, -0.5)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;&lt;img src=&quot;/static/imgs/output_47_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;```python&lt;/p&gt;
-
-&lt;p&gt;```&lt;/p&gt;
-</description>
-        <pubDate>Mon, 04 Sep 2017 22:37:01 -0400</pubDate>
-        <link>http://rickyhan.com/jekyll/update/2017/09/04/simgan-captcha.html</link>
-        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/09/04/simgan-captcha.html</guid>
-        
-        
-        <category>jekyll</category>
-        
-        <category>update</category>
-        
-      </item>
-    
-      <item>
-        <title>Deploy a Static Website on Kubernetes</title>
-        <description>&lt;blockquote class=&quot;twitter-tweet&quot; data-lang=&quot;en&quot; data-dnt=&quot;true&quot; data-theme=&quot;dark&quot;&gt;&lt;p lang=&quot;en&quot; dir=&quot;ltr&quot;&gt;Deployed my blog on Kubernetes &lt;a href=&quot;https://t.co/XHXWLrmYO4&quot;&gt;pic.twitter.com/XHXWLrmYO4&lt;/a&gt;&lt;/p&gt;&amp;mdash; Dex (@dexhorthy) &lt;a href=&quot;https://twitter.com/dexhorthy/status/856639005462417409&quot;&gt;April 24, 2017&lt;/a&gt;&lt;/blockquote&gt;
-&lt;script async=&quot;&quot; src=&quot;//platform.twitter.com/widgets.js&quot; charset=&quot;utf-8&quot;&gt;&lt;/script&gt;
-
-&lt;h2 id=&quot;generate-a-static-blog&quot;&gt;Generate a static blog&lt;/h2&gt;
-
-&lt;p&gt;To generate an example Jekyll blog.&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;jekyll new test_blog
-cd test_blog
-jekyll build
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;h2 id=&quot;build-docker-image&quot;&gt;Build Docker Image&lt;/h2&gt;
-
-&lt;p&gt;Add this Dockerfile in the root directory then &lt;code class=&quot;highlighter-rouge&quot;&gt;docker build . -t rhan888:blog&lt;/code&gt;.&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;FROM nginx
-EXPOSE 80
-COPY _site/ /usr/share/nginx/html
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;This creates a docker image from the nginx base image. Nginx serves static content from root directory under default settings and typically runs on 1mb of memory and negligible CPU.&lt;/p&gt;
-
-&lt;p&gt;Now upload this image to a Docker registry of your choice.&lt;/p&gt;
-
-&lt;h2 id=&quot;deploy-docker-image-to-kubernetes&quot;&gt;Deploy Docker Image to Kubernetes&lt;/h2&gt;
-
-&lt;h3 id=&quot;create-a-pod&quot;&gt;Create a Pod&lt;/h3&gt;
-
-&lt;p&gt;Create a new file named &lt;code class=&quot;highlighter-rouge&quot;&gt;blog-deployment.yml&lt;/code&gt;. It will be used later to create an a pod on your cluster.&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: blog
-spec:
-  replicas: 1
-  template:
-    spec:
-      containers:
-      - env:
-        image: rhan888/blog:latest
-        imagePullPolicy: Always
-        name: blog
-        ports:
-        - containerPort: 80
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;To “run” this file, supply the file to &lt;code class=&quot;highlighter-rouge&quot;&gt;kubectl&lt;/code&gt;.&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl create -f blog-deployment.yml
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;Now a deployment is created on the cluster. However, it is only accessible from within the cluster.&lt;/p&gt;
-
-&lt;h3 id=&quot;create-a-service&quot;&gt;Create a Service&lt;/h3&gt;
-
-&lt;p&gt;We need to expose the port and bind it an external IP. We achieve this by creating a service. The &lt;code class=&quot;highlighter-rouge&quot;&gt;blog-service.yml&lt;/code&gt; is the configuration file for this service.&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;apiVersion: v1
-kind: Service
-metadata:
-  name: blog
-spec:
-  type: &quot;LoadBalancer&quot;
-  ports:
-  - name: &quot;http&quot;
-    port: 80
-    targetPort: 80
-  selector:
-    name: blog
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;Supply kubernetes with the above config:&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;kubectl create -f blog-service.yml&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;Now your static blog is deployed on Kubernetes, up and accessible from external IP.&lt;/p&gt;
-
-&lt;!--
-There are four types of service:
- 
-* ClusterIP: Exposes the service on a cluster-internal IP. Choosing this value makes the service only reachable from within the cluster. This is the default ServiceType.
-
-* NodePort: Exposes the service on each Node’s IP at a static port (the NodePort). A ClusterIP service, to which the NodePort service will route, is automatically created. You’ll be able to contact the NodePort service, from outside the cluster, by requesting &lt;NodeIP&gt;:&lt;NodePort&gt;.
-
-* LoadBalancer: Exposes the service externally using a cloud provider’s load balancer. NodePort and ClusterIP services, to which the external load balancer will route, are automatically created.
-
-* ExternalName: Maps the service to the contents of the externalName field (e.g. foo.bar.example.com), by returning a CNAME record with its value. No proxying of any kind is set up. This requires version 1.7 or higher of kube-dns.
-
-So for a frontend service(user-facing, as opposed to a Database or Redis), the options are `NodePort` and `LoadBalancer`, the former exposes the service port directly(think proxy_pass) and the latter distributes incoming requests to different pods. The cool thing about service is that kubernetes actually uses nginx internally. And kubernetes comes battery included: bindings with different cloud providers (i.e. GKE, AWS) so getting an external IP does not require any extra steps. In short, the developer can use the best tooling without ANY configuration. Explain why kubernetes is an overkill?
-
-(Aside: on GCE(GKE), there is 0 charge for external IPs unless it&#39;s not used by a service)
-
-## Optional: Add an Ingress
-
-Don&#39;t use it on GKE. It&#39;s basically a CDN cache that charges ridiculous $$$. Its functionality is nothing more than Cloudflare free-tier.~~ According to [alpb](https://news.ycombinator.com/item?id=14287780), Ingress is not a CDN and is charged the same price as a regional load balancer (Service.type=LoadBalancer). But for AWS kubernetes users, this is a viable option if you find the need to use it, ingress is not in the scope of this blog post. For most static sites, the load balancing above is already an &quot;overkill&quot;(in a good way).
-
---&gt;
-
-&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
-
-&lt;p&gt;We can deploy a static website to Kubernetes with minimal effort.&lt;/p&gt;
-</description>
-        <pubDate>Mon, 04 Sep 2017 22:37:01 -0400</pubDate>
-        <link>http://rickyhan.com/jekyll/update/2017/09/04/deploy-static-website-on-kubernetes.html</link>
-        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/09/04/deploy-static-website-on-kubernetes.html</guid>
-        
-        
-        <category>jekyll</category>
-        
-        <category>update</category>
-        
-      </item>
-    
-  </channel>
-</rss>
+https://arxiv.org/pdf/1204.1381.pdf

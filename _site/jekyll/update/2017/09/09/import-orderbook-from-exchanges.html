@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Gradient Trader Part 0: Building a Cryptocurrency Trading Bot</title>
+  <meta name="description" content="I am really excited about my new project. It is a fairly sophisticated crypto trading bot built with TensorFlow. In the upcoming series of posts, I will shar...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://rickyhan.com/jekyll/update/2017/09/09/import-orderbook-from-exchanges.html">
+  <link rel="alternate" type="application/rss+xml" title="Ricky Han blog" href="http://rickyhan.com/feed.xml">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Ricky Han blog</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Gradient Trader Part 0: Building a Cryptocurrency Trading Bot</h1>
+    <p class="post-meta"><time datetime="2017-09-09T11:05:01-04:00" itemprop="datePublished">Sep 9, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>I am really excited about my new project. It is a fairly sophisticated crypto trading bot built with TensorFlow. In the upcoming series of posts, I will share some details on how it was built. Unfortunately, since the bot is profitable, it will be operating in stealth mode and won’t be open-sourced. However, the non-mission-critical parts will be. For example, I am currently porting visualization charts and interactive graphs into a separate publishable module. Expect pretty graphics soon.</p>
+
+<p>The intention is to use this blog as a real-time lab report and tutorial for new quant enthusiasts. Financial demos are few and far between so I hope this will provide some value. This is the first post in the installment. In this post we show how to import limit order book updates into your own database for later use. A wise man once said, 99% of programming is moving a chunk of data from one place to another, transforming it in the process. Order book update is no exception. Here, we listen to every limit order update emitted from the exchange’s websocket and store it in a PostgreSQL database. Reconstructing an LOB is covered in the next post.</p>
+
+<h1 id="the-state-of-cryptocurrency-trading">The State of Cryptocurrency Trading</h1>
+
+<p>Cryptocurrency is the Wild West of trading. Pump and dump scams happen on an hourly basis. Even the higher capitalization markets experience huge price swings that can easily wipe out traditional investors. Market manipulation is the norm and behavior is irrational and counterintuitive. Some strategies can lock people away if executed in a regulated environment.</p>
+
+<p>Cryptocurrency is traded on digital exchanges to which access is universal as long as the trader has an Internet connection. High volatility and low barrier of entrance provide an enormous appeal to casual day traders who trade based entirely on market sentiment. As a result, there is “hype money” flowing around major cryptocurrency exchanges, which means cryptocurrency is fertile ground for pattern matching / statistical inference algorithms to flourish.</p>
+
+<h2 id="market-microstructure">Market Microstructure</h2>
+
+<h3 id="presence-of-hft">Presence of HFT</h3>
+
+<p>The speed of cryptocurrency exchanges are 1000 times slower than that of stocks and futures. Of course, some exchanges are faster than others. The fastest, most advanced exchange as of September 2017 is Coinbase GDAX. However, it may not be the most friendly exchange to run your strategy. Most exchanges have millisecond time-scale resolution which means a lot of new HFT strategies are rendered useless. Modern HFT trading strategy requires microsecond resolution. However, there are plenty of market makers operating on a larger time-scale. The Ether Flash Crash only took 45 milliseconds, way faster than a human being can process. And, liquidity taking strategies(filling a mispriced order) will always be a speed game. Afterall, the bitcoin markets are so small that most HFT algorithms are limited.</p>
+
+<p>Other than GDAX, most exchanges are neither fast enough nor liquid enough. For some exchanges, the slow speed may be an intentional design choice as HFT is discouraged in order to protect investors and to stablize an already volatile market. There may also be paid firehose and backdoor market access unknown to ordinary traders. This is a possibility because of lack of regulation.</p>
+
+<h3 id="fee-schedule">Fee Schedule</h3>
+
+<p>Differences in fee schedules encourage different market microstructure and trading behaviors.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th>Coinbase GDAX</th>
+      <th>Bitfinex</th>
+      <th>Poloniex</th>
+      <th>Bittrex</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Maker Fee</td>
+      <td>0%</td>
+      <td>0% - 0.1%</td>
+      <td>0% - 0.15%</td>
+      <td>0.25%</td>
+    </tr>
+    <tr>
+      <td>Taker Fee</td>
+      <td>0.1% - 0.25%</td>
+      <td>0.1% - 0.2%</td>
+      <td>0.05% - 0.25%</td>
+      <td>0.25%</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The maker-taker model offers strong benefits such as greater liquidity and a smaller bid-ask spread. However, some exchanges are offering a flat fee for both makers and takers so there is less incentives for high frequency traders. One prominent example is Bittrex. For people who have read Flash Boys by Michael Lewis, Bittrex is to IEX as GDAX is to NYSE. Also Bittrex is the most expensive exchange to trade on. It charges a premium for protection from HFT</p>
+
+<h3 id="developer-api">Developer API</h3>
+
+<p>The other prominent feature is the minimal API. It doesn’t send the exact time an order book update was placed. Instead, several BUY, SELL, and FILL updates are batched together in a WebSocket frame over the duration of a <code class="highlighter-rouge">Nounce</code> or <code class="highlighter-rouge">seq</code>.</p>
+
+<p>However, the techniques required to scale a live order book in real-time will be the same regardless of the intended use case. So while the strategies will be different from what we know as HFT, the systems in use will be very similar.</p>
+
+<h3 id="why-i-chose-bittrex">Why I Chose Bittrex</h3>
+
+<p>The choice of Bittrex is reasonable because the prediction engine simulates approximately how a normal trader would place orders(albeit faster in execution). Working against the current, having HFT frontrunners will be annoying and render the algorithm unreliable. Bittrex is an investor-friendly exchange that has dozens of coins with relatively high liquidity and fewer HFT bots meddling with the order book. The order book is smaller in size to store and work with.</p>
+
+<h1 id="storing-limit-order-book-updates-in-db">Storing Limit Order Book Updates in DB</h1>
+
+<p>Using a plain PostgreSQL database hosted on Google Cloud SQL with daily backup, we write a listener to INSERT new updates with ease. For Bittrex, updates are ~250 INSERTS/second. For Poloniex, ~30 INSERTS/second. If you are choosing a DB today, take a look at <a href="https://blog.timescale.com/timescaledb-vs-6a696248104e">TimescaleDB</a>. It may be a better option if you would like to admin it yourself.</p>
+
+<p>Since it’s a websocket related application, NodeJS is an obvious choice. I used TypeScript because of self-documentation and auto-suggestion.</p>
+
+<p>```typescript
+import * as pg from ‘pg’;
+const config = require(“../config/db.json”);</p>
+
+<p>const pool = new pg.Pool(config);</p>
+
+<p>export async function createTableForPair(pair: string) : Promise<boolean> {
+  const client = await pool.connect()
+  try {
+    await client.query(`
+    CREATE TABLE IF NOT EXISTS orderbook_${pair}
+    (
+        id SERIAL PRIMARY KEY NOT NULL,
+        seq INTEGER NOT NULL,
+        is_trade BOOLEAN,
+        is_bid BOOLEAN,
+        price DOUBLE PRECISION,
+        size DOUBLE PRECISION,
+        ts DOUBLE PRECISION,
+        trade_id INTEGER,
+        type INTEGER
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS
+      orderbook_${pair}_id_uindex ON orderbook_${pair} (id);</boolean></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>CREATE TABLE IF NOT EXISTS orderbook_snapshot_${pair}
+(
+    id SERIAL PRIMARY KEY NOT NULL,
+    seq INTEGER NOT NULL,
+    snapshot JSON NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS
+  orderbook_snapshot_${pair}_id_uindex ON orderbook_snapshot_${pair} (id);
+`);
+</code></pre>
+</div>
+
+<p>} finally {
+    client.release()
+  }</p>
+
+<p>return true;
+}</p>
+
+<p>```</p>
+
+<p>Here we are using a connection pool because this software makes frequent queries. Connecting a new client to the PostgreSQL server requires a handshake which can take 20-30 milliseconds. During this time passwords are negotiated, SSL may be established, and configuration information is shared with the client &amp; server. Incurring this cost every time we want to execute a query would substantially slow down our application.</p>
+
+<p>The caveat is that you must always return the client to the pool if you successfully check it out, regardless of whether or not there was an error with the queries you ran on the client. If you don’t check in the client your application will leak them and eventually your pool will be empty forever and all future requests to check out a client from the pool will wait forever.</p>
+
+<p>The pool will handle the consumer-producer threading issues.</p>
+
+<p>So we create two tables, one for order book updates and one for orderbook snapshots. The latter is not strictly necessary. The field <code class="highlighter-rouge">seq</code> is the Nounce because sometimes the websocket can scramble up the order so it’s the programmer’s job to re-arrange the updates in the right order. Also, we are storing filled trades with order book updates so there is no need to create another table. It’s differentiated with <code class="highlighter-rouge">is_trade</code> field. <code class="highlighter-rouge">ts</code> is the timestamp. <code class="highlighter-rouge">trade_id</code> is the internal trade id. Needless to say, the table is index by <code class="highlighter-rouge">id</code>.</p>
+
+<p>This function is accompanied by <code class="highlighter-rouge">tableExistsForPair</code>. The script checks if the tables are created during init.</p>
+
+<p>```typescript
+async function initTables(markets : string[]) {
+    let pairs = markets.map(toPair);</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>let create = await Promise.all(
+    pairs.map(pair =&gt; new Promise(async (resolve, reject) =&gt; {
+        let exists = await tableExistsForPair(pair);
+        if (!exists) {
+            console.log(`${pair} table does not exist. Creating...`)
+            await createTableForPair(pair);
+        }
+        resolve(true);
+    }))
+);
+
+console.log("Double checking...");
+let created = await Promise.all(pairs.map(tableExistsForPair));
+for (let i = 0; i &lt; created.length; i++) {
+    if (!created[i]) {
+        throw `Table for '${pairs[i]}' cannot be created.`;
+    }
+} } ```
+</code></pre>
+</div>
+
+<p>We use <code class="highlighter-rouge">await Promise.all()</code> to concurrently run multiple DB requests instead of serially awaiting each one to finish. You always want to double check failed queries.</p>
+
+<h1 id="listen-for-updates">Listen for Updates</h1>
+
+<p>First, to add some joy to development, let’s get the types of JSON objects emitted defined using TypeScript interface. This is where TypeScript really comes in handy. My only gripe with TypeScript is the lack of a real <a href="https://wiki.haskell.org/Bottom">bottom</a>.</p>
+
+<p>```typescript
+export interface ExchangeState {
+     H: string, // Hub
+     M: “updateExchangeState”,
+     A: [ExchangeStateUpdate]
+}</p>
+
+<p>export type Side = “SELL” | “BUY”;
+export type UpdateType = 0 // new order entries at matching price, add to orderbook
+                       | 1 // cancelled / filled order entries at matching price, delete from orderbook
+                       | 2 // changed order entries at matching price (partial fills, cancellations), edit in orderbook
+                       ;</p>
+
+<p>export interface ExchangeStateUpdate {
+    MarketName: string,
+    Nounce: number,
+    Buys: [Buy],
+    Sells: [Sell],
+    Fills: [Fill]
+}</p>
+
+<p>export type Sell = Buy;</p>
+
+<p>export interface Buy {
+    Type: UpdateType,
+    Rate: number,
+    Quantity: number
+}</p>
+
+<p>export interface Fill {
+    OrderType: Side,
+    Rate: number,
+    Quantity: number,
+    TimeStamp: string,
+}</p>
+
+<p>//================================</p>
+
+<p>export interface SummaryState {
+    H: string,
+    M: “updateSummaryState”,
+    A: [SummaryStateUpdate]
+}</p>
+
+<p>export interface SummaryStateUpdate {
+    Nounce: number,
+    Deltas: [PairUpdate] 
+}</p>
+
+<p>export interface PairUpdate {
+    MarketName: string,
+    High: number
+    Low: number,
+    Volume: number,
+    Last: number,
+    BaseVolume: number,
+    TimeStamp: string,
+    Bid: number,
+    Ask: number,
+    OpenBuyOrders: number,
+    OpenSellOrders: number,
+    PrevDay: number,
+    Created: string
+}</p>
+
+<p>//================================</p>
+
+<p>export interface UnhandledData {
+    unhandled_data: {
+        R: boolean, // true, 
+        I: string,  // ‘1’
+    }
+}</p>
+
+<p>//================================
+//callbacks</p>
+
+<p>export type ExchangeCallback = (value: ExchangeStateUpdate, index?: number, array?: ExchangeStateUpdate[]) =&gt; void 
+export type SummaryCallback = (value: PairUpdate, index?: number, array?: PairUpdate[]) =&gt; void</p>
+
+<p>//================================
+//db updates</p>
+
+<p>export interface DBUpdate {
+    pair: string,
+    seq: number,
+    is_trade: boolean,
+    is_bid: boolean,
+    price: number,
+    size: number,
+    timestamp: number,
+    type: number
+}
+```</p>
+
+<p>Next we want to listen to the websocket and dump everything update to the database.</p>
+
+<p>```typescript
+// get an array of market names
+function allMarkets() : Promise&lt;[string]&gt; {
+    return new Promise((resolve, reject) =&gt; {
+        bittrex.getmarketsummaries( function( data : any, err : never) {
+            if (err) reject(err);
+            const ret = data.result.map((market : PairUpdate) =&gt; market.MarketName)
+            resolve(ret);
+        });
+    });
+}</p>
+
+<p>// Formats a JSON object into a DBUpdate object
+function formatUpdate(v : ExchangeStateUpdate) : DBUpdate[] {
+    let updates : DBUpdate[] = [];</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>const pair = toPair(v.MarketName);
+const seq = v.Nounce;
+const timestamp = Date.now() / 1000;
+
+v.Buys.forEach(buy =&gt; {
+    updates.push(
+        {
+            pair,
+            seq,
+            is_trade: false,
+            is_bid: true,
+            price: buy.Rate,
+            size: buy.Quantity,
+            timestamp,
+            type: buy.Type
+        }
+    );
+});
+
+v.Sells.forEach(sell =&gt; {
+    updates.push(
+        {
+            pair,
+            seq,
+            is_trade: false,
+            is_bid: false,
+            price: sell.Rate,
+            size: sell.Quantity,
+            timestamp,
+            type: sell.Type
+        }
+    );
+});
+
+v.Fills.forEach(fill =&gt; {
+    updates.push(
+        {
+            pair,
+            seq,
+            is_trade: true,
+            is_bid: fill.OrderType === "BUY",
+            price: fill.Rate,
+            size: fill.Quantity,
+            timestamp: (new Date(fill.TimeStamp)).getTime() / 1000,
+            type: null
+        }
+    );
+})
+
+return updates; }
+</code></pre>
+</div>
+
+<p>async function watch() {
+    try {
+        let mkts = await allMarkets()</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>    await initTables(mkts);
+    console.log("Tables created.");
+
+    listen(mkts, (v, i, a) =&gt; {
+        let updates : DBUpdate[] = formatUpdate(v);
+        updates.forEach(update =&gt; {
+            const { pair, seq, is_trade, is_bid, price, size, timestamp, type } = update;
+            saveUpdate(pair, seq, is_trade, is_bid, price, size, timestamp, type);
+        });
+    });
+
+} catch (e) {
+    console.log(e);
+    throw e;
+} }
+</code></pre>
+</div>
+
+<p>let main = watch;</p>
+
+<p>main();
+```</p>
+
+<p>To start the program, just call <code class="highlighter-rouge">watch()</code>. As you can see, this code is highly modular and development was a breeze.</p>
+
+<p>With a copy of the order book securely stored in the database, we can replay and reconstruct the order book at any given moment. Next post will cover order book reconstruction, visualization and unusual discoveries. Stay tuned!</p>
+
+  </div>
+
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Ricky Han blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Ricky Han blog</li>
+          <li><a href="mailto:rickyhan+blog@rickyhan.com">rickyhan+blog@rickyhan.com</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>Programming demos, tips, thoughts.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
