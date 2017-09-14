@@ -198,7 +198,7 @@ plt.show()
 
 With more training, it would be even closer to input but that is not necessary for this demonstration.
 
-Visualize the latent vector, this can be useful sometimes but not in this case.
+Visualize the latent vector can be useful sometimes but not in this case.
 
 
 ```python
