@@ -19,7 +19,7 @@ Autoencoding is the practice of copying input to output or learning the identity
 
 The hidden dimension should be smaller than $$x$$, the input dimension. This way, $$h$$ is forced to take on useful properties and most salient features of the input space.
 
-To train an autoencoder, is equivalent to optimizing:
+Train an autoencoder to find function $$f, g$$ such that:
 
 $$\arg \min _{f, g}||X-(g \circ f )X||^{2}$$
 
@@ -3174,11 +3174,13 @@ Given an example trading pattern, quickly identify similar patterns in a multi-d
 
 Implementation:
 
-* Train a stacked recurrent autoencoder on a set of desired pattern(s).
+* Train a stacked recurrent autoencoder on a dataset of sequences.
 
-* Then for all historical data, use the encoder(!) to produce a fixed length vector.
+* Encode the query sequence pattern $${\mathcal{X}_{t-1}, \mathcal{X}_{t}, \mathcal{X}_{t+1}, ...}$$ to obtain $$H_{\mathcal{X}}$$.
 
-* Compare this vector with a distance metric.
+* Then for all historical data, use the encoder to produce fixed length vectors $$\mathcal{H} = \{H_{a}, H_{b}, H_{c}, ...\}$$.
+
+* For each $$t \in \mathcal{H}$$, find $$\arg\!\min_t dist(H_{t}, H_{\mathcal{X}})$$.
 
 It is basically a fuzzy hash function. This I have not tried since calculating the hash for all sequence requires serious compute only available to big instituional players. 
 

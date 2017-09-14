@@ -6,8 +6,8 @@
 </description>
     <link>http://rickyhan.com/</link>
     <atom:link href="http://rickyhan.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Thu, 14 Sep 2017 01:04:47 -0400</pubDate>
-    <lastBuildDate>Thu, 14 Sep 2017 01:04:47 -0400</lastBuildDate>
+    <pubDate>Thu, 14 Sep 2017 09:54:58 -0400</pubDate>
+    <lastBuildDate>Thu, 14 Sep 2017 09:54:58 -0400</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
     
       <item>
@@ -16,22 +16,24 @@
 
 &lt;h1 id=&quot;using-autoencoders-to-learn-most-salient-features-from-time-series&quot;&gt;Using Autoencoders to Learn Most Salient Features from Time Series&lt;/h1&gt;
 
-&lt;p&gt;In this post we examine a simple, if not the simplest, tool in deep learning and see how it can be applied to multi-dimensional financial time series. This is a toy example of how one would apply such model to sequential data such as ones encountered in finance.&lt;/p&gt;
+&lt;p&gt;This post is about a simple tool in deep learning toolbox: Autoencoder. It can be applied to multi-dimensional financial time series.&lt;/p&gt;
 
 &lt;h2 id=&quot;autoencoder&quot;&gt;Autoencoder&lt;/h2&gt;
 
-&lt;p&gt;Autoencoding is the practice of copying input to output. It has an internal state &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; to represent the input. Autoencoders is composed of two parts: an encoder &lt;script type=&quot;math/tex&quot;&gt;f :{\mathcal {X}}\rightarrow {\mathcal {H}}&lt;/script&gt; and a decoder &lt;script type=&quot;math/tex&quot;&gt;g :{\mathcal {H}}\rightarrow {\mathcal {Y}}&lt;/script&gt;. Autoencoders are designed to be unable to learn to copy perfectly.&lt;/p&gt;
+&lt;p&gt;Autoencoding is the practice of copying input to output or learning the identity function. It has an internal state called latent space &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; which is used to represent the input. Usually, this dimension is chosen to be smaller than the input(called undercomplete). Autoencoder is composed of two parts: an encoder &lt;script type=&quot;math/tex&quot;&gt;f :{\mathcal {X}}\rightarrow {\mathcal {H}}&lt;/script&gt; and a decoder &lt;script type=&quot;math/tex&quot;&gt;g :{\mathcal {H}}\rightarrow {\mathcal {Y}}&lt;/script&gt;.&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;https://blog.keras.io/img/ae/autoencoder_schema.jpg&quot; alt=&quot;autoencoder(keras)&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;The hidden dimension should constrained to be smaller than &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt;, the input dimension. This way, &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; is forced to take on useful properties and most salient features of the input space.&lt;/p&gt;
+&lt;p&gt;The hidden dimension should be smaller than &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt;, the input dimension. This way, &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; is forced to take on useful properties and most salient features of the input space.&lt;/p&gt;
 
-&lt;p&gt;To train an autoencoder, minimize&lt;/p&gt;
+&lt;p&gt;Train an autoencoder to find function &lt;script type=&quot;math/tex&quot;&gt;f, g&lt;/script&gt; such that:&lt;/p&gt;
 
 &lt;script type=&quot;math/tex; mode=display&quot;&gt;\arg \min _{f, g}||X-(g \circ f )X||^{2}&lt;/script&gt;
 
 &lt;h2 id=&quot;recurrent-autoencoder&quot;&gt;Recurrent Autoencoder&lt;/h2&gt;
-&lt;p&gt;For time series data, recurrent autoencoder is more useful. The encoder and decoder are RNNs such as LSTMs. We encode the input into an undercomplete latent vector &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; which is then decoded. For the decoder, we can either initialize with the latent vector and use output at time &lt;script type=&quot;math/tex&quot;&gt;t-1&lt;/script&gt; as input for time &lt;script type=&quot;math/tex&quot;&gt;t&lt;/script&gt; or we can use latent vector &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; as the input at each timestep. These are called conditional and unconditional RNNs. Recurrent autoencoder is a special case of sequence-to-sequence(seq2seq) architecture which is extremely powerful in neural machine translation.&lt;/p&gt;
+&lt;p&gt;For time series data, recurrent autoencoder are especially useful. The only difference is that the encoder and decoder are replaced by RNNs such as LSTMs. Think of RNN as a for loop over time step so the state is kept. It can be unrolled into a feedforward network.&lt;/p&gt;
+
+&lt;p&gt;First, the input is encoded into an undercomplete latent vector &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; which is then decoded by the decoder. Recurrent autoencoder is a special case of sequence-to-sequence(seq2seq) architecture which is extremely powerful in neural machine translation where the neural network maps one language sequence to another.&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;https://esciencegroup.files.wordpress.com/2016/03/seq2seq.jpg&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
@@ -43,18 +45,24 @@ import matplotlib.pyplot as plt
 
 &lt;h1 id=&quot;task&quot;&gt;Task&lt;/h1&gt;
 
-&lt;p&gt;Copy a tensor of two sine function that are initialized out of phase.&lt;/p&gt;
+&lt;p&gt;Copy a tensor of two sine functions that are initialized out of phase.&lt;/p&gt;
 
-&lt;p&gt;The shape of the tensor is: &lt;script type=&quot;math/tex&quot;&gt;(batch\_size, time\_step, input\_dim)&lt;/script&gt; where &lt;script type=&quot;math/tex&quot;&gt;input\_dim&lt;/script&gt; = 2.&lt;/p&gt;
+&lt;p&gt;The shape of the input is a tensor of shape &lt;script type=&quot;math/tex&quot;&gt;(batch\_size, time\_step, input\_dim)&lt;/script&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;script type=&quot;math/tex&quot;&gt;batch\_size&lt;/script&gt; is the number of batches for training. Looping over each sample is slower than applying a tensor operation on a batch of several samples.&lt;/p&gt;
+
+&lt;p&gt;&lt;script type=&quot;math/tex&quot;&gt;time\_step&lt;/script&gt; is the number of timeframes for the RNN to iterate over. In this tutorial it is 10 because 10 points are generated.&lt;/p&gt;
+
+&lt;p&gt;&lt;script type=&quot;math/tex&quot;&gt;input\_dim&lt;/script&gt; is the number of data points at each timestep. Here we have 2 functions, so this number is 2.&lt;/p&gt;
 
 &lt;p&gt;To deal with financial data, simply replace the &lt;script type=&quot;math/tex&quot;&gt;input\_dim&lt;/script&gt; axis with desired data points.&lt;/p&gt;
 
 &lt;ul&gt;
   &lt;li&gt;Bid, Ask, Spread, Volume, RSI. For this setup, the &lt;script type=&quot;math/tex&quot;&gt;input\_dim&lt;/script&gt; would be 5.&lt;/li&gt;
-  &lt;li&gt;Order book levels. We can rebin the order book such that each tick aggregates more liquidity. An example would be 10 levels that are 1 stddev apart. Then &lt;script type=&quot;math/tex&quot;&gt;input\_dim&lt;/script&gt; would be 10.&lt;/li&gt;
+  &lt;li&gt;Order book levels. We can rebin the order book along tick axis so each tick aggregates more liquidity. An example would be 10 levels that are 1 stdev apart. Then &lt;script type=&quot;math/tex&quot;&gt;input\_dim&lt;/script&gt; would be 10.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;Here is an artist’s rendering of a recurrent autoencoder.&lt;/p&gt;
+&lt;p&gt;Here is an artist’s rendition of a recurrent autoencoder.&lt;/p&gt;
 
 &lt;p&gt;```python
 plt.xkcd()&lt;/p&gt;
@@ -78,7 +86,7 @@ plt.show()
 
 &lt;h1 id=&quot;generator&quot;&gt;Generator&lt;/h1&gt;
 
-&lt;p&gt;We generate 10 time steps for the random phased sine function.&lt;/p&gt;
+&lt;p&gt;For each batch, generate 2 sine functions, each with 10 datapoints. The phase of the sine function is random.&lt;/p&gt;
 
 &lt;p&gt;```python
 import random
@@ -115,9 +123,9 @@ return batch_x, batch_x#batch_y ```
 
 &lt;h1 id=&quot;model&quot;&gt;Model&lt;/h1&gt;
 
-&lt;p&gt;We use a 2-vector to represent the sine functions. Normally, we use &lt;script type=&quot;math/tex&quot;&gt;\phi \in \mathbb{R}&lt;/script&gt; to represent the phase angle for a trignometric function. The big picture here is to compress the input sine functions into two numbers and then decode them back.&lt;/p&gt;
+&lt;p&gt;The goal is to use two numbers to represent the sine functions. Normally, we use &lt;script type=&quot;math/tex&quot;&gt;\phi \in \mathbb{R}&lt;/script&gt; to represent the phase angle for a trignometric function. Let’s see if the neural network can learn this phase angle. The big picture here is to compress the input sine functions into two numbers and then decode them back.&lt;/p&gt;
 
-&lt;p&gt;We define the architecture and let the neural network do its trick.&lt;/p&gt;
+&lt;p&gt;Define the architecture and let the neural network do its trick. It is a model with 3 layers, a LSTM encoder that “encodes” the input time series into a fixed length vector(in this case 2). A RepeatVector that repeats the fixed length vector to 10 timesteps to be used as input to the LSTM decoder. For the decoder, we can either initialize the hidden state(memory) with the latent vector and use output at time &lt;script type=&quot;math/tex&quot;&gt;t-1&lt;/script&gt; as input for time &lt;script type=&quot;math/tex&quot;&gt;t&lt;/script&gt; or we can use latent vector &lt;script type=&quot;math/tex&quot;&gt;h&lt;/script&gt; as the input at each timestep. These are called conditional and unconditional decoders.&lt;/p&gt;
 
 &lt;p&gt;```python
 from keras.models import Sequential, Model
@@ -162,7 +170,7 @@ _________________________________________________________________
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
-&lt;p&gt;Since this post is a demonstration of the technique, we use the smallest model possible which happens to be the best in this case. The “best” dimensionality will be one that results in the highest lossless compression. In practice, it’s equal part art and science. In production, there are a plethora of trick to accelerate training and finding the right capacity of the latent vector. Topics include: architectures for dealing with the asynchronus, non-stationary time series, preprocessing techniques such as wavelet transforms and FFT. I might cover these in an upcoming post if there’s enough interest.&lt;/p&gt;
+&lt;p&gt;Since this post is a demonstration of the technique, we use the smallest model possible which happens to be the best in this case. The “best” dimensionality will be one that results in the highest lossless compression. In practice, it’s mostly an art than science. In production, there are a plethora of trick to accelerate training and finding the right capacity of the latent vector. Topics include: architectures for dealing with asynchronus, non-stationary time series, preprocessing techniques such as wavelet transforms and FFT.&lt;/p&gt;
 
 &lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python
 plt.plot(history.history[&#39;loss&#39;])
@@ -171,14 +179,9 @@ plt.xlabel(&quot;epoch&quot;)
 plt.show()
 &lt;/code&gt;&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;/usr/local/lib/python2.7/dist-packages/matplotlib/font_manager.py:1297: UserWarning: findfont: Font family [u&#39;xkcd&#39;, u&#39;Humor Sans&#39;, u&#39;Comic Sans MS&#39;] not found. Falling back to DejaVu Sans
-  (prop.get_family(), self.defaultFamily[fontext]))
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
 &lt;p&gt;&lt;img src=&quot;/static/autoencoders/output_10_1.png&quot; alt=&quot;png&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;You may think that the neural network suddenly “got it” during training but this is just the optimzer escaping a saddle point. In fact, as we demonstrate below, the neural network(at least the decoder) didn’t get anything at all.&lt;/p&gt;
+&lt;p&gt;You may think that the neural network suddenly “got it” during training but this is just the optimzer escaping a saddle point. In fact, as we demonstrate below, the neural network(at least the decoder) doesn’t learn the math behind it at all.&lt;/p&gt;
 
 &lt;p&gt;```python
 X_test, _ = gen(1)
@@ -195,7 +198,7 @@ plt.show()
 
 &lt;p&gt;With more training, it would be even closer to input but that is not necessary for this demonstration.&lt;/p&gt;
 
-&lt;p&gt;Just for fun, we can visualize the latent 2-vector.&lt;/p&gt;
+&lt;p&gt;Visualize the latent vector can be useful sometimes but not in this case.&lt;/p&gt;
 
 &lt;p&gt;```python
 encoder = Model(m.layers[0].input, m.layers[0].output)
@@ -3115,7 +3118,7 @@ AAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNTYuNDAuMTAx
   Your browser does not support the video tag.
 &lt;/video&gt;
 
-&lt;p&gt;As we can see from the animation above. The neural network is not using phase angle as the latent space. Instead, it is using a complex interaction between these two numbers caused by the gradient of LSTM during the training process. As &lt;script type=&quot;math/tex&quot;&gt;x \rightarrow \infty&lt;/script&gt;, the image under &lt;script type=&quot;math/tex&quot;&gt;y = g(h) \rightarrow 0&lt;/script&gt;. This is understood as the decoder does not learn the underlying trig function but merely approximated a manifold of the high dimensional space.&lt;/p&gt;
+&lt;p&gt;As we can see from the animation above. The neural network is not using phase angle as the latent space. Instead, it is using a complex interaction between these two numbers caused by the gradient of LSTM during the training process. As &lt;script type=&quot;math/tex&quot;&gt;x \rightarrow \infty&lt;/script&gt;, the decoder &lt;script type=&quot;math/tex&quot;&gt;g(h) \rightarrow 0&lt;/script&gt;. This is understood as the decoder does not learn the underlying trig function but merely approximated a manifold of the high dimensional space.&lt;/p&gt;
 
 &lt;p&gt;Now let us visualize the latent space in its entirety. For higher dimensional latent space we may encounter in financial data, we can use PCA and tSNE but these are beyond the scope of this post.&lt;/p&gt;
 
@@ -3140,23 +3143,26 @@ plt.show()
 
 &lt;p&gt;Regulators can identify illegal trading strategies by building an unsupervised deep learning algorithm.&lt;/p&gt;
 
-&lt;p&gt;Implementation: as shown above.&lt;/p&gt;
+&lt;p&gt;Implementation: see below.&lt;/p&gt;
 
 &lt;h3 id=&quot;pattern-search&quot;&gt;Pattern Search&lt;/h3&gt;
 
-&lt;p&gt;Given an example trading pattern, quickly identify similar patterns in a multi-dimensional sequence of data.&lt;/p&gt;
+&lt;p&gt;Given an example trading pattern, quickly identify similar patterns in a multi-dimensional data series.&lt;/p&gt;
 
 &lt;p&gt;Implementation:&lt;/p&gt;
 
 &lt;ul&gt;
   &lt;li&gt;
-    &lt;p&gt;Train a stacked recurrent autoencoder on a set of desired pattern(s).&lt;/p&gt;
+    &lt;p&gt;Train a stacked recurrent autoencoder on a dataset of sequences.&lt;/p&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;p&gt;Then for all historical data, use the encoder(!) to produce a fixed length vector.&lt;/p&gt;
+    &lt;p&gt;Encode the query sequence pattern &lt;script type=&quot;math/tex&quot;&gt;{\mathcal{X}_{t-1}, \mathcal{X}_{t}, \mathcal{X}_{t+1}, ...}&lt;/script&gt; to obtain &lt;script type=&quot;math/tex&quot;&gt;H_{\mathcal{X}}&lt;/script&gt;.&lt;/p&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;p&gt;Compare this vector with a distance metric.&lt;/p&gt;
+    &lt;p&gt;Then for all historical data, use the encoder to produce fixed length vectors &lt;script type=&quot;math/tex&quot;&gt;\mathcal{H} = \{H_{a}, H_{b}, H_{c}, ...\}&lt;/script&gt;.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;For each &lt;script type=&quot;math/tex&quot;&gt;t \in \mathcal{H}&lt;/script&gt;, find &lt;script type=&quot;math/tex&quot;&gt;\arg\!\min_t dist(H_{t}, H_{\mathcal{X}})&lt;/script&gt;.&lt;/p&gt;
   &lt;/li&gt;
 &lt;/ul&gt;
 
