@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Gradient Trader Part 2: Visualizing Bitcoin Order Book</title>
+  <meta name="description" content="In this short post I will demonstrate how to use the order book. I am giving out  visualization algorithms for free.">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://rickyhan.com/jekyll/update/2017/09/14/visualizing-order-book.html">
+  <link rel="alternate" type="application/rss+xml" title="Ricky Han blog" href="http://rickyhan.com/feed.xml">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Ricky Han blog</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Gradient Trader Part 2: Visualizing Bitcoin Order Book</h1>
+    <p class="post-meta"><time datetime="2017-09-14T00:37:02-04:00" itemprop="datePublished">Sep 14, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>In this short post I will demonstrate how to use the order book. I am giving out  visualization algorithms for free.</p>
+
+<p>Visualization should lead to truth and understanding. There are different ways of visualizing the order book. We will start with the simplest one.</p>
+
+<p>This is the supply-demand curve.</p>
+
+<p><img src="https://i.stack.imgur.com/UBUfx.jpg" alt="" /></p>
+
+<p>Order book on Bittrex:</p>
+
+<p><img src="https://tonyy.in/content/images/2017/08/Screen-Shot-2017-08-08-at-9.42.13-PM.png" alt="" /></p>
+
+<p>As you can see in the simplest case, the order book is nothing but the transpose of the supply-demand curve zoomed in. This is a simple visualization - most traders can only catch a fleeting glimpse. Its utility is limited to spotting walls at any instant.</p>
+
+<p>Now let’s work our way up towards better visualization.</p>
+
+<h1 id="establish-db-connection">Establish DB Connection</h1>
+
+<p>First, establish a connection to the database and retrieve orderbook updates over 1 hour.</p>
+
+<p>The following is a trick to “proxy/forward” a db connection using ssh. Let’s say the database(<code class="highlighter-rouge">dburl</code>) is configured to only accept connections from <code class="highlighter-rouge">secure-server</code>, then it’s used to simply forward the port from <code class="highlighter-rouge">localhost</code> to <code class="highlighter-rouge">dburl</code>.</p>
+
+<p><code class="highlighter-rouge">ssh rhan@secure-server -CNL localhost:5432:dburl:5432</code></p>
+
+<p>```python
+import psycopg2
+import sys
+from time import time
+from pprint import pprint
+import matplotlib.pyplot as plt
+import numpy as np
+from math import floor, ceil
+import datetime
+import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap
+import copy</p>
+
+<h1 id="connstring--hostlocalhost-dbnamebittrex-userrhan-passwordredacted">conn_string = “host=’localhost’ dbname=’bittrex’ user=’rhan’ password=’[REDACTED]’”</h1>
+<p>conn_string = “host=’localhost’ dbname=’bittrex’ user=’postgres’ password=’long time people dem used to say’”
+conn = psycopg2.connect(conn_string)
+cursor = conn.cursor()
+```</p>
+
+<h1 id="configure-matplotlib">Configure <code class="highlighter-rouge">matplotlib</code></h1>
+
+<p><code class="highlighter-rouge">python
+plt.rcParams["font.family"] = "Ubuntu Mono"
+plt.grid(False)
+plt.axis('on')
+plt.style.use('dark_background')
+</code></p>
+
+<h1 id="retrieve-data">Retrieve Data</h1>
+
+<p>We only need the following columns:</p>
+
+<ol>
+  <li>
+    <p><code class="highlighter-rouge">ts</code>:
+Timestamp of the order received by client.</p>
+  </li>
+  <li>
+    <p><code class="highlighter-rouge">seq</code>:
+Sequence number to re-order the events received.</p>
+  </li>
+  <li>
+    <p><code class="highlighter-rouge">size</code>:
+Order size</p>
+  </li>
+  <li>
+    <p><code class="highlighter-rouge">price</code>:
+Price of order</p>
+  </li>
+  <li>
+    <p><code class="highlighter-rouge">is_bid</code>:
+Is the order a buy or sell</p>
+  </li>
+  <li>
+    <p><code class="highlighter-rouge">is_trade</code>:
+Is it a market order or limit order</p>
+  </li>
+</ol>
+
+<p>Although the exchange may send other fields such as trade id, update type(create, delete, partial fill) and some exchange-specific order types, the above is the minimum set of fields to reconstruct an order book.</p>
+
+<p>```python
+h = int(time()) # ! do not change
+h_ago = h - 7200</p>
+
+<p>cursor.execute(“””
+    SELECT ts, seq, size, price, is_bid, is_trade
+      FROM orderbook_btc_neo
+     WHERE ts &gt; {} AND ts &lt; {}
+  ORDER BY seq ASC;
+“”“.format(h_ago, h))
+result = cursor.fetchall()
+conn.commit()
+```</p>
+
+<p><code class="highlighter-rouge">python
+print (result[-1][0] - result[0][0]) / 60, "minutes"
+</code></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>119.984233332 minutes
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">python
+events = pd.DataFrame.from_records(result,
+                                       columns=["ts", "seq", "size", "price", "is_bid", "is_trade"],
+                                       index="seq")
+</code></p>
+
+<p>Now let us plot price distributions</p>
+
+<p><code class="highlighter-rouge">python
+prices = np.array(events["price"])
+plt.hist(prices)
+plt.title("Price distribution")
+plt.show()
+</code></p>
+
+<p><img src="/static/viz/output_10_0.png" alt="png" /></p>
+
+<p>As you can see, most of the liquidity aggregates in 1 bin. So let’s “zoom in” on this bin.</p>
+
+<p>```python
+def reject_outliers(data, m = 2.):
+    d = np.abs(data - np.median(data))
+    mdev = np.median(d)
+    s = d/mdev if mdev else 0.
+    return data[s&lt;m]</p>
+
+<p>rejected = reject_outliers(prices, m=4)
+plt.hist(rejected)
+plt.title(“Outliers rejected”)
+plt.show()
+```</p>
+
+<p><img src="/static/viz/output_12_0.png" alt="png" /></p>
+
+<p>Internally, <code class="highlighter-rouge">plt.hist</code> uses <code class="highlighter-rouge">np.histogram</code> which we will later use to get a list of boundaries to rebin the ticks.</p>
+
+<p>Also trivial is the percentage of buy/sell market orders. These orders are considered “aggressive” as in crossing the spread. The plot below is not weighted by order size.</p>
+
+<p>```python
+is_bids = events[events[“is_trade”]][“is_bid”]
+total_events_cnt = is_bids.size
+bids = np.sum(is_bids)
+asks = total_events_cnt - bids</p>
+
+<p>plt.pie([bids, asks])
+plt.legend([“bids”, “asks”])
+plt.title(“bid/ask”)
+plt.show()
+```</p>
+
+<p><img src="/static/viz/output_14_0.png" alt="png" /></p>
+
+<h1 id="split-events-into-separate-categories">Split Events into Separate Categories</h1>
+
+<p>We split events into three categories:</p>
+
+<ul>
+  <li>limit order creation</li>
+  <li>limit order cancellation</li>
+  <li>market order</li>
+</ul>
+
+<p>This is done by comparing the previous liquidity $s_{t-1}$ to the new liquidity $s_{t}$ at a given price level $p$.</p>
+
+<p>```python
+cols = [“ts”, “seq”, “size”, “price”, “is_bid”, “is_trade”]</p>
+
+<p>cancelled = []
+created = []
+current_level = {}</p>
+
+<p>for seq, (ts, size, price, is_bid, is_trade) in events.sort_index().iterrows():
+    if not is_trade:
+        prev = current_level[price] if price in current_level else 0
+        if (size == 0 or size &lt;= prev):
+            cancelled.append((ts, seq, prev - size, price, is_bid, is_trade))
+        elif (size &gt; prev):
+            created.append((ts, seq, size - prev, price, is_bid, is_trade))
+        else: # size == prev
+            raise Exception(“Impossible”)</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>current_level[price] = size
+</code></pre>
+</div>
+
+<p>cancelled = pd.DataFrame.from_records(cancelled, columns=cols, index=”seq”)
+created =   pd.DataFrame.from_records(created,   columns=cols, index=”seq”)
+trades = events[events[‘is_trade’]]</p>
+
+<h1 id="sanity-check">sanity check</h1>
+<p>assert len(cancelled) + len(created) + len(trades) == len(events)
+```</p>
+
+<h1 id="visualize-individual-orders">Visualize Individual Orders</h1>
+
+<p>Visualizing order cancellation/creation is the lowest level one can go about visualization. The x-axis is time, y-axis is size of order. It provides insights into the activities of individual market participants.</p>
+
+<p>```python
+import datetime as dt
+import matplotlib.dates as md</p>
+
+<p>def plotVolumeMap(df, volFrom=None, volTo=None, log_scale=True):
+    if volFrom:
+        df = df[df[“size”] &gt;= volFrom]
+    if volTo:
+        df = df[df[“size”] &lt;= volTo]</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>colors = map(lambda b: '#ffff00' if b else '#00ffff', df["is_bid"])
+
+fig = plt.figure(figsize=(24, 18))
+ax = fig.add_subplot(111)
+if log_scale:
+    ax.set_yscale('log')
+
+plt.scatter(df["ts"], df["size"], c=colors, s=5)
+plt.legend(["bid"])
+plt.show() ```
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">python
+plotVolumeMap(cancelled, volFrom=100, volTo=200, log_scale=True)
+</code></p>
+
+<p><img src="/static/viz/output_19_0.png" alt="png" /></p>
+
+<p><code class="highlighter-rouge">python
+plotVolumeMap(cancelled, volFrom=1, volTo=30, log_scale=True)
+</code></p>
+
+<p><img src="/static/viz/output_20_0.png" alt="png" /></p>
+
+<p>By filtering out events within a volume range, it is possible to isolate what are most likely individual order placement strategies.</p>
+
+<p>I don’t understand how this bot works. If you do please let me know.</p>
+
+<h1 id="rebinning-events">Rebinning Events</h1>
+
+<p>Now we convert events into deltas that have a start time and end time. In the process, rebin the events along the time and ticks axis so more liquidity aggregates on each tick.</p>
+
+<p>This way, we can plot how the order book evolves over time.</p>
+
+<p>```python
+def to_updates(events):
+    tick_bins_cnt = 2000
+    step_bins_cnt = 2000</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>sizes, boundaries = np.histogram(rejected, tick_bins_cnt)
+def into_tick_bin(price):
+    for (s, b) in zip(boundaries, boundaries[1:]):
+        if b &gt; price &gt; s:
+            return s
+    return False
+
+min_ts = result[0][0]
+max_ts = result[-1][0]
+step_thresholds = range(int(floor(min_ts)), int(ceil(max_ts)), int(floor((max_ts - min_ts)/(step_bins_cnt))))
+def into_step_bin(time):
+    for (s, b) in zip(step_thresholds, step_thresholds[1:]):
+        if b &gt; time &gt; s:
+            return b
+    return False
+    
+updates = {}
+for row in result:
+    ts, seq, size, price, is_bid, is_trade = row
+    price = into_tick_bin(price)
+    time = into_step_bin(ts)
+    if not price or not time:
+        continue
+    if price not in updates:
+        updates[price] = {}
+    if time not in updates[price]:
+        updates[price][time] = 0
+    updates[price][time] += size;
+return updates ```
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">python
+updates = to_updates(events) # expensive
+</code></p>
+
+<p>```python
+def plot_price_levels(updates, zorder=0, max_threshold=100, min_threshold=0.5):
+    max_size = 0
+    list_of_updates = []
+    for price, value in updates.items():
+        for time, size in value.items():
+            list_of_updates.append((price,time,size))</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>        if size &gt; max_size:
+            max_size = size
+
+ys = []
+xmins = []
+xmaxs = []
+colors = []
+
+for price, vdict in updates.items():
+    vtuples = vdict.items()
+    vtuples = sorted(vtuples, key=lambda tup: tup[0])
+    for (t1, s1), (t2, s2) in zip(vtuples, vtuples[1:]): # bigram
+        xmins.append(t1)
+        xmaxs.append(t2)
+        ys.append(price)
+        if s1 &lt; min_threshold:
+            colors.append((0, 0, 0))
+        elif s1 &gt; max_threshold:
+            colors.append((0, 1, 1))
+        else:
+            colors.append((0, s1/max_threshold, s1/max_threshold))
+plt.hlines(ys, xmins, xmaxs, color=colors, lw=3, alpha=1, zorder=zorder) #     plt.colorbar()     ```
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">python
+plt.figure(figsize=(24, 18))
+plot_price_levels(updates, max_threshold=100, min_threshold=10)
+plt.show()
+</code></p>
+
+<p><img src="/static/viz/output_26_0.png" alt="png" /></p>
+
+<p>This visualization technique is from the famous <a href="http://www.nanex.net/aqck2/4586.html">Nanex Research</a>.</p>
+
+<p>An interesting strategy emerges using this visualization:</p>
+
+<p><img src="https://i.imgur.com/Q5vdjs0.png" alt="" /></p>
+
+<p>Note the orders sitting far from the market are pegged to be x basis points from the inside.</p>
+
+<h1 id="reconstructing-order-book">Reconstructing Order Book</h1>
+
+<p>We can also reconstruct order book to get order book depth at each instant. With the shape of the order book at each time step, we can plot how the best bid and ask change over time.</p>
+
+<p><img src="https://lobsterdata.com/images/figures/HowDoesItWork_ReconstructionAlgorithm.png" alt="" /></p>
+
+<p>The algorithm is very straightforward. Order book updates are tracked by keeping a temp copy of the limit order book and store each updated “temp” version into a dictionary indexed by timestamps.</p>
+
+<p><code class="highlighter-rouge">python
+def get_ob():
+    most_recent_orderbook = {"bids": {}, "asks": {}}
+    orderbook = {}
+    for seq, e in events.iterrows():
+        if e.is_trade:
+            continue
+        if e.ts not in orderbook:
+            for side, sidedicts in most_recent_orderbook.items():
+                for price, size in sidedicts.items():
+                    if size == 0:
+                        del sidedicts[price]
+            orderbook[e.ts] = copy.deepcopy(most_recent_orderbook)
+        orderbook[e.ts]["bids" if e.is_bid else "asks"][e.price] = e["size"]
+        most_recent_orderbook["bids" if e.is_bid else "asks"][e.price] = e["size"]
+    return orderbook
+</code></p>
+
+<p>```python
+def best_ba(orderbook):
+    best_bids_asks = []</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>for ts, ob in orderbook.items():
+    try:
+        best_bid = max(ob["bids"].keys())
+    except: # sometimes L in max(L) is []
+        continue
+    try:
+        best_ask = min(ob["asks"].keys())
+    except:
+        continue
+    best_bids_asks.append((ts, best_bid, best_ask))
+
+best_bids_asks = pd.DataFrame.from_records(best_bids_asks, columns=["ts", "best_bid", "best_ask"], index="ts").sort_index()
+return best_bids_asks ```
+</code></pre>
+</div>
+
+<p>```python
+def plot_best_ba(best_ba_df):
+    bhys = []    # bid - horizontal - ys
+    bhxmins = [] # bid - horizontal - xmins
+    bhxmaxs = [] # …
+    bvxs = []
+    bvymins = []
+    bvymaxs = []
+    ahys = []
+    ahxmins = []
+    ahxmaxs = []
+    avxs = []
+    avymins = []
+    avymaxs = []</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>bba_tuple = best_ba_df.to_records()
+for (ts1, b1, a1), (ts2, b2, a2) in zip(bba_tuple, bba_tuple[1:]): # bigram
+    bhys.append(b1)
+    bhxmins.append(ts1)
+    bhxmaxs.append(ts2)
+    bvxs.append(ts2)
+    bvymins.append(b1)
+    bvymaxs.append(b2)
+    ahys.append(a1)
+    ahxmins.append(ts1)
+    ahxmaxs.append(ts2)
+    avxs.append(ts2)
+    avymins.append(a1)
+    avymaxs.append(a2)
+
+plt.hlines(bhys, bhxmins, bhxmaxs, color="green", lw=3, alpha=1)
+plt.vlines(bvxs, bvymins, bvymaxs, color="green", lw=3, alpha=1)
+plt.hlines(ahys, ahxmins, ahxmaxs, color="red", lw=3, alpha=1)
+plt.vlines(avxs, avymins, avymaxs, color="red", lw=3, alpha=1) ```
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">python
+def plot_trades(trades, size=1, zorder=10):
+    trades_colors = map(lambda is_bid: "#00ff00" if is_bid else "#ff0000", trades.is_bid)
+    plt.scatter(trades["ts"], trades["price"], s=trades["size"]*size, color=trades_colors, zorder=zorder)
+</code></p>
+
+<p><code class="highlighter-rouge">python
+ob = get_ob() # expensive
+best_ba_df = best_ba(ob) # expensive
+</code></p>
+
+<p>```python
+plt.figure(figsize=(24, 18))</p>
+
+<p>plot_best_ba(best_ba_df)
+plot_trades(trades, size=0.5, zorder=10)
+plot_price_levels(updates, zorder=0, max_threshold=60, min_threshold=1)
+plt.ylim([0.00529, 0.005425])</p>
+
+<p>plt.show()
+```</p>
+
+<p><img src="/static/viz/output_34_0.png" alt="png" /></p>
+
+<p>```python
+def plot_events(df, trades_df=None, min_price=None, max_price=None, log_scale=True):
+    if min_price:
+        df = df[(df[“price”] &gt; min_price)]
+        if trades_df is not None:
+            trades_df = trades_df[(trades_df[“price”] &gt; min_price)]
+    if max_price:
+        df =  df[(df[“price”] &lt; max_price)]
+        if trades_df is not None:
+            trades_df =  trades_df[(trades_df[“price”] &lt; max_price)]</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>fig = plt.figure(figsize=(24, 18))
+ax = fig.add_subplot(111)
+
+if trades_df is not None:
+    plt.title("Trades And Cancellation")
+    plt.legend(["Trades", "Cancellation"])
+    plt.scatter(trades_df["ts"], trades_df["price"], s=trades_df["size"], color="#00ffff")
+    plt.scatter(df["ts"], df["price"], s=df["size"]/30, color="#ffff00")
+else:
+    plt.scatter(df["ts"], df["price"], s=df["size"], color="#ffff00")
+    plt.legend("Cancelled")
+    plt.title("Cancellation")
+if log_scale:
+    ax.set_yscale('log')
+</code></pre>
+</div>
+
+<p>plot_events(cancelled, trades_df=trades, min_price=0.00499, max_price=0.00529, log_scale=False)
+plt.show()
+```</p>
+
+<p><img src="/static/viz/output_35_0.png" alt="png" /></p>
+
+<p>```python
+def plot_ob(bidask, bps=.25):
+    # bps: basis points</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>best_bid = max(bidask["bids"].keys())
+best_ask = min(bidask["asks"].keys())
+worst_bid = best_bid * (1 - bps)
+worst_ask = best_bid * (1 + bps)
+filtered_bids = sorted(filter(lambda (k,v): k &gt;= worst_bid, bidask['bids'].items()), key=lambda x:-x[0])
+filtered_asks = sorted(filter(lambda (k,v): k &lt;= worst_ask, bidask['asks'].items()), key=lambda x:+x[0])
+
+bsizeacc = 0
+bhys = []    # bid - horizontal - ys
+bhxmins = [] # bid - horizontal - xmins
+bhxmaxs = [] # ...
+bvxs = []
+bvymins = []
+bvymaxs = []
+asizeacc = 0
+ahys = []
+ahxmins = []
+ahxmaxs = []
+avxs = []
+avymins = []
+avymaxs = []
+
+for (p1, s1), (p2, s2) in zip(filtered_bids, filtered_bids[1:]):
+    bvymins.append(bsizeacc)
+    if bsizeacc == 0:
+        bsizeacc += s1
+    bhys.append(bsizeacc)
+    bhxmins.append(p2)
+    bhxmaxs.append(p1)
+    bvxs.append(p2)
+    bsizeacc += s2
+    bvymaxs.append(bsizeacc)
+
+for (p1, s1), (p2, s2) in zip(filtered_asks, filtered_asks[1:]):
+    avymins.append(asizeacc)
+    if asizeacc == 0:
+        asizeacc += s1
+    ahys.append(asizeacc)
+    ahxmins.append(p1)
+    ahxmaxs.append(p2)
+    avxs.append(p2)
+    asizeacc += s2
+    avymaxs.append(asizeacc)
+    
+plt.hlines(bhys, bhxmins, bhxmaxs, color="green")
+plt.vlines(bvxs, bvymins, bvymaxs, color="green")
+plt.hlines(ahys, ahxmins, ahxmaxs, color="red")
+plt.vlines(avxs, avymins, avymaxs, color="red")
+</code></pre>
+</div>
+
+<h1 id="dts--maxobkeys">d_ts = max(ob.keys())</h1>
+<p># d_ob = ob[d_ts]
+plt.figure(figsize=(10,4))
+plot_ob(d_ob, bps=.05)
+plt.ylim([0, 17500])
+plt.show()
+```</p>
+
+<p><img src="/static/viz/output_36_0.png" alt="png" /></p>
+
+<p><code class="highlighter-rouge">python
+cursor.close()
+conn.close()
+</code></p>
+
+<p>This is a demonstration of some visualization algorithms using <code class="highlighter-rouge">matplotlib</code>. As you can see, they are fairly straightforward to implement.</p>
+
+<p>In the future I plan on porting such visualization to <a href="https://github.com/rrag/react-stockcharts">react-stockcharts</a> so I can interactively explore data. The algorithms are already here, what is left to be done is changing matplotlib calls to d3. If you would like to collaborate with me on this, please email me.</p>
+
+  </div>
+
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Ricky Han blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Ricky Han blog</li>
+          <li><a href="mailto:rickyhan+blog@rickyhan.com">rickyhan+blog@rickyhan.com</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>Programming demos, tips, thoughts.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
