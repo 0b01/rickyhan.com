@@ -43,8 +43,7 @@ import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 import copy
 
-# conn_string = "host='localhost' dbname='bittrex' user='rhan' password='[REDACTED]'"
-conn_string = "host='localhost' dbname='bittrex' user='postgres' password='long time people dem used to say'"
+conn_string = "host='localhost' dbname='bittrex' user='rhan' password='[REDACTED]'"
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
 ```
