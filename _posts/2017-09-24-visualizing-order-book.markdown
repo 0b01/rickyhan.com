@@ -5,6 +5,8 @@ date:   2017-09-14 00:37:02 -0400
 categories: jekyll update
 ---
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+
 In this short post I will demonstrate how to use the order book. I am giving out  visualization algorithms for free.
 
 Visualization should lead to truth and understanding. There are different ways of visualizing the order book. We will start with the simplest one.
@@ -175,7 +177,7 @@ We split events into three categories:
 * limit order cancellation
 * market order
 
-This is done by comparing the previous liquidity $s_{t-1}$ to the new liquidity $s_{t}$ at a given price level $p$.
+This is done by comparing the previous liquidity $$s_{t-1}$$ to the new liquidity $$s_{t}$$ at a given price level $$p$$.
 
 
 ```python
