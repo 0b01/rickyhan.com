@@ -5,13 +5,11 @@ date:   2017-09-27 00:37:02 -0400
 categories: jekyll update
 ---
 
-Recently, a friend asked me to write a program that buys things off of a shopping website as soon as anything is added. I decided to write it in Haskell.
-
-Supreme is a fashion brand that curbs supply to create artificial scarcity, which results in higher consumer surplus and resell profit margin. So yes, the deadweight loss suffered in the primary market(webstore) is actually paying for the reseller network effect and virality.
+Recently, a friend asked me to write a program that buys things off of a the shopping site of Supreme website as soon as anything is added. Supreme is a fashion brand that curbs supply to create artificial scarcity, resulting in higher consumer surplus and resell profit margin. So yes, the deadweight loss suffered in the primary market (webstore) is actually paying to incentivize the resellers and increase virality of the brand.
 
 ![supreme brick](http://d17ol771963kd3.cloudfront.net/122510/zo/LGlxG_4e95s.jpg)
 
-This script does the following:
+This Haskell script does the following:
 
 1. GET website url.
 
@@ -245,14 +243,14 @@ fromDiff (D.First a) = a
 fromDiff (D.Second a) = a
 ```
 
-Most of the logic is in getDiffs: first compare the new hash with the old hash. If `pageSource` changed, then find the difference of the pages at the level of HTML tags. To do this, TagSoup is used to parse page source into a list of Tags. Since the Tags are in the `Eq` typeclass, it is supported by the diff algorithm. This is where the typeclass system becomes really useful.
+Most of the logic is in `getDiffs`: first compare the new hash with the old hash. If `pageSource` changed, then find the difference of the pages at the level of HTML tags. To do this, `TagSoup` is used to parse `pageSource` into a list of `Tag`s. Since `Tag` implements `Eq` typeclass, it is supported by the diff algorithm. This is where the typeclass system really becomes useful.
 
-Now that the diffs are calculated, just need to filter out the ones we said we wanted in options. Since options are implemented on the type level as opposed to data level, pattern matching against types is needed. `Options` is a product type which is pleasant to pattern match against.
+Now that the diffs are calculated, just need to filter out the ones that we said we wanted in options. Since options are implemented on the type level as opposed to data level, pattern matching against types is necessary. `Options` is a product type which is pleasant to pattern match against.
 
 # Conclusion
 
-Using Haskell, we can monitor pages in a highly modular and type safe manner.
+Using Haskell, we can monitor pages in a modular and type safe manner.
 
-After reading about Supreme drops online, I realized the website only changes on Thursdays so I won't know what to watch.
+After reading about Supreme drops online, I realized the website only changes on Thursdays so I won't know what urls to watch.
 
 Later, I lost interest in fashion and this project is abandoned.
