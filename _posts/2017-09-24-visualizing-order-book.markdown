@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Gradient Trader Part 2: Visualizing Bitcoin Order Book"
-date:   2017-09-14 00:37:02 -0400
+date:   2017-09-24 00:37:02 -0400
 categories: jekyll update
 ---
 
