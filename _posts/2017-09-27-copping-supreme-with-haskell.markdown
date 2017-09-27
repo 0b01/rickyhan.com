@@ -168,7 +168,7 @@ Nothing to see here. Wreq is the HTTP library whose results can be accessed usin
 
 Here is the implementation for the `getDiff` method(in a separate module).
 
-```
+```haskell
 {-# LANGUAGE OverloadedStrings #-}
 
 module Diff where
