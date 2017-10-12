@@ -39,7 +39,7 @@ Then in a separate session,
     2017-10-12T19:27:09.639Z        INFO    miner/server.go:343     sending result  {"info": {}, "statuses": {}}
     2017-10-12T19:27:14.627Z        INFO    miner/server.go:512     yamux.Ping OK   {"rtt": "201.763µs"}
 
-I assume that one hub supports a cluster of nearby hosts, similar to the masternode on Kubernetes.
+I assume that one hub supports a cluster of nearby hosts, similar to the master node on Kubernetes.
 
 Finally, to run a docker container, create a yml file:
 
@@ -52,7 +52,7 @@ Finally, to run a docker container, create a yml file:
     >       RAM: 10240kb
     >END
 
-Now we need to figure out which miner to run the task on:
+Now we need to figure out the miner on which to run the task:
 
     $ ./sonmcli --addr 127.0.0.1:10001 miner list
     Miner: 127.0.0.1:50928          Idle
@@ -76,7 +76,7 @@ Now we can deploy the task:
 
 This command returns when the task is deployed.
 
-Let's inspect the miner again:
+We inspect the miner again:
 
     $ ./sonmcli --addr 127.0.0.1:10001 miner status 127.0.0.1:50928
     Miner: "127.0.0.1:50928" (003fe205-af29-4777-aa2c-a70fd50569ab):
@@ -89,11 +89,9 @@ Let's inspect the miner again:
     Tasks:
         1) 94b59103-0c43-4c1e-bc87-9e06abf39ad5
 
-As we can see, the miner lists the task running. The entire process took 3 minutes in wall clock time.
+The entire process took less than 3 minutes in wall clock time.
 
-The development is exciting. I hope SONM team can keep working on the releases and make the software as bulletproof as possible.
-
-Of course, a system this complex will have lots of edge cases. I hope the SONM team can solve some of these:
+Of course, a system this complex will have lots of edge cases. I hope the SONM team have solutions to these pressing issues with fog computing:
 
 1. Security: user side and miner side
 
