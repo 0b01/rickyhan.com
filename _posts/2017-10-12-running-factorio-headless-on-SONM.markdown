@@ -105,5 +105,5 @@ SONM marketplace release is scheduled this winter along with a wallet prototype.
 
 ![SONM marketpalce](https://camo.githubusercontent.com/0bb184c987ef6d88ddbd62fde21c596aa4795998/68747470733a2f2f7261772e6769746875622e636f6d2f736f6e6d2d696f2f646f63732f6d61737465722f617263682f73657175656e63652e7376673f73616e6974697a653d74727565)
 
-I will test these product as they are released.
+I will test these products as they are released.
 
