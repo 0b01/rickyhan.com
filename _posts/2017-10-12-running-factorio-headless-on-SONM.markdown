@@ -43,7 +43,7 @@ I assume that one hub supports a cluster of nearby hosts, similar to the master 
 
 Finally, to run a docker container, create a yml file:
 
-    cat > task.yml <<END
+    $ cat > task.yml <<END
     > task:
     >   container:
     >     name: dtandersen/factorio:latest 
