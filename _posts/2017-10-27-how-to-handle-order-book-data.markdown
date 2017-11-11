@@ -5,29 +5,13 @@ date:   2017-10-27 22:37:01 -0400
 categories: jekyll update
 ---
 
-The bottleneck of training the neural network is data transfer and preprocessing.
-
 Dealing with order book data is a problem everyone encounters at some point. The more professional a firm is, the more severe the problem gets.
 
-As documented in a [previous post](http://rickyhan.com/jekyll/update/2017/09/09/import-orderbook-from-exchanges.html), I have been storing order book ticks to a PostgreSQL hosted on Google Cloud. It seemed like a good idea at first, but now it stopped working entirely after amassing 2TB of ticks, it gradually slowed down insofar as a simple query takes several minutes of compute and the fees are atrocious. In the meantime, I worked on a datastore specifically for storing order book ticks and running simple queries. It uses a compressed binary file and stores one orderbook update in 12 bytes. This post is a short overview of how it is implemented. At its current stage, it is a filesystem backed append-only storage system. The complexity is nowhere near SecDB, Athena, Quartz. In the future, I plan on adding clustering, master-slave replication, implement a better DSL, events, and [CRDT](https://medium.com/@istanbul_techie/a-look-at-conflict-free-replicated-data-types-crdt-221a5f629e7e) should the demand arise.
+As documented in a [previous post](http://rickyhan.com/jekyll/update/2017/09/09/import-orderbook-from-exchanges.html), I have been storing order book ticks to a PostgreSQL. Using an out-of-the-box solution seems like a good idea at first, but it stops working before you notice. After amassing a whopping 2 terabytes of data, the system gradually slowed down. In the meantime, I have been working on a datastore specifically for storing order book updates. It uses a compressed binary file and stores one row in 12 bytes. This post is a short overview of how it is implemented. At its current stage, it is a filesystem backed append-only storage. The complexity is nowhere near SecDB, Athena, Quartz. In the future, I plan on adding clustering, master-slave replication, implement a better DSL, events, and [CRDT](https://medium.com/@istanbul_techie/a-look-at-conflict-free-replicated-data-types-crdt-221a5f629e7e) should the demand arise.
 
-![too much](https://i.imgur.com/j2bxfZk.png)
+## Dense Tick Format (.dtf) : thinking about compression
 
-# Big Picture
-
-A database has a lot of moving parts (ordered by implementation):
-
-* Serialization
-* TCP Server
-* Command Parser
-* Thread Pool
-* Shared State
-* Autoflush
-* Usage Statistic
-
-## Dense Tick Format (.dtf)
-
-First, we need a file format by finding a sweet spot between processing speed and storage efficiency. The contiguous data we want to store is of shape:
+First of all, structure data can be compressed. The key is finding a sweet spot between processing speed and storage efficiency. If you have read my previous posts, you will know that the contiguous data is of this shape:
 
 ```json
 {
@@ -40,19 +24,23 @@ First, we need a file format by finding a sweet spot between processing speed an
 }
 ```
 
-This is the minimal amount of information to reconstruct the order book in its entirety. The naive approach is to use a CSV file. Storing it in plaintext such would require a minimum of 45 bytes. Text file is neither efficient in storage efficiency nor processing speed. We will use it as a baseline to compare our codecs against.
+These 6 fields are the minimal amount of information to reconstruct the order book in its entirety. ([Note on reconstruction](http://rickyhan.com/jekyll/update/2017/09/24/visualizing-order-book.html))
+
+### Naive approach 
+
+The naive approach is to use a CSV file. Storing it in plaintext (like txt) would require 45 bytes. Text file is neither efficient in storage nor in processing speed. We will compare our codecs against this baseline.
 
 ### Our first codec
 
 Let's do the bare minimum. Switching from ascii (1 byte per char), we use default data types to encode the same information:
 
 ```
-ts (u32): 2,147,483,647
-seq (u32): 2,147,483,647
+ts (u32): int
+seq (u32): int
 is_trade: (u8): bool
 is_bid: (u8): bool
-price: (f32)
-size: (f32)
+price: (f32): float
+size: (f32): float
 ```
 
 Timestamp is stored as an unsigned integer by multiplying the float by 1000.
@@ -64,16 +52,17 @@ Sums up to `4 + 4 + 1 + 1 + 4 + 4 = 18 bytes`, a 60% reduction. This approach al
 Note how the bool is stored as a whole byte when it only takes 1 bit. This is because a byte is the smallest addressable unit in memory. We can squish the two bools into 1 byte by using bitflags. Now we have 17 bytes, a 5% reduction.
 
 ```
-ts (u32): 2,147,483,647
-seq (u32): 2,147,483,647
-(is_trade << 1) | is_bid: (u8)
+ts (u32)
+seq (u32)
+((is_trade << 1) | is_bid): (u8)
 price: (f32)
 size: (f32)
 ```
 
-We can use the bitflags crate in Rust.
+To do this, I used the `bitflags` crate in Rust.
 
 ```rust
+// use bitflags macro to define a struct
 bitflags! {
     struct Flags: u8 {
         const FLAG_EMPTY   = 0b0000_0000;
@@ -82,27 +71,18 @@ bitflags! {
     }
 }
 
-impl Flags {
-    fn to_bool(&self) -> bool {
-        (self.bits == 0b0000_0001) || (self.bits == 0b0000_0010)
-    }
-}
-
-// usage
-
 let mut flags = Flags::FLAG_EMPTY;
 if self.is_bid { flags |= Flags::FLAG_IS_BID; }
 if self.is_trade { flags |= Flags::FLAG_IS_TRADE; }
 let _ = buf.write_u8(flags.bits());
-
 ```
 
 ### Delta encoding
 
-Instead of storing each tick on its own, we can exploit the common structure of the data. Since timestamp and seq are continuous increasing fields, we can create a snapshot and store the difference in a smaller data type. This is called delta encoding.
+Instead of storing each tick as its own row, we can exploit the shared structure along the time axis, namely taking snapshot of time and sequence number. Since `timestamp` and `seq` are discretely increasing fields, we can create a snapshot the usual size (int) and store the difference in a smaller data type(short). This method is called delta encoding.
 
 ```
-bool for `is_snapshot`
+0. bool for is_snapshot
 1. if snapshot
     4 bytes (u32): reference ts
     2 bytes (u32): reference seq
@@ -115,11 +95,9 @@ bool for `is_snapshot`
     size: (f32)
 ```
 
-The idea is to save a snapshot in the beginning, and everytime when `dts` and `dseq` are close to overflow, start a new snapshot. The number of records is very handy because when query between two timestamp the reader can skip the snapshot section if it is out of range.
+The idea is to save a snapshot every once in a while, and everytime when `dts` and `dseq` are close to overflow, start a new snapshot and repeat. This on average saves 5 bytes, a 30% reduction. And the processing overhead is `O(1)`. Here, we use only 12 bytes, 27% of the original codec.
 
-This on average saves 5 bytes, a 30% reduction. And the processing overhead is minimal. Now we use only 12 bytes, 27% of the original codec.
-
-There are other ways to futher reduce the size if we aren't storing the whole order book. For example, contiguous tick prices tend to be close to each other, which means zigzag encoding can be applied. If the price only goes upward(possible with crypto?), we can use varint. Also, doing delta encoding over the bytes could potentially save a few bytes, but would cost O(n) in additional processing time, same with run length encoding.
+There are other ways to futher reduce the size if we aren't storing the whole order book. For example, contiguous tick prices tend to be close to each other, which means [zigzag encoding](https://gist.github.com/mfuerstenau/ba870a29e16536fdbaba) can be useful. If the price only goes upward(possible with a hypothetical ponzi scheme based funds), we can use [varint](https://developers.google.com/protocol-buffers/docs/encoding). Also, doing delta encoding over the bytes could potentially save a few bytes, but would cost O(n) in additional processing time, same with run length encoding: first run a decompression over bytes, then decompress again.
 
 ### Metadata
 
@@ -133,15 +111,15 @@ Offset 33: (u32) max ts
 Offset 80: -- records - see below --
 ```
 
-First we put a magic value to identify the kind of file. Then we store the symbol and exchange for the file in a 20-char string. Then number of records and max ts so a reader won't need to read the entire file to find this information.
+First put a magic value to identify the kind of file. Then store the symbol and exchange for the file in 20 characters. Then number of records and maximum timestamp so during decoding, it is unnecessary to read the entire file to find this information.
 
-Whenever we have structured data, it makes sense to build a simple binary file format to increase storage efficiency.
+When dealing with large amount of structured data, it makes sense to build a simple binary file format to increase storage and processing efficiency.
 
-If you want to learn more about file encodings, take a look at the [spec for .rdr](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format).
+If you want to learn more about file encodings, take a look at the [spec for redis files](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format).
 
 ### Read, Write traits
 
-The above encoder/decoder can support a lot of buffers: BufWriter, TcpStream, String, etc.. This is done by using the trait system in Rust. As long as the buffer implements the Read, Write traits, we can use dtf as a file format/ stream protocol. C++20 is adding a similar functionality called [concepts](https://en.wikipedia.org/wiki/Concepts_(C%2B%2B)).
+The above encoder/decoder can support a multitude of buffers: BufWriter, TcpStream, String, etc... thanks to the trait system in Rust. As long as the buffer struct implements `Read`, `Write` traits, it can used to transfer or store orderbook ticks. This saves a lot of boilerplate.
 
 ```rust
 fn write_magic_value(wtr: &mut Write) {
@@ -149,27 +127,23 @@ fn write_magic_value(wtr: &mut Write) {
 }
 ```
 
-### File organization
-
-Now we store everything in one giant file. Using a seperate tool called `dtfcat`, we can read metadata, convert the file to csv, json, split into hours, days, weeks, months etc..
-
 ## Designing a TCP Server
 
-Now that a good enough binary file format is in place, we build a TCP server.
+Now that a format is in place, it's time to build a TCP server and start serving requests.
 
 ### Design
 
-TCP is a streaming protocol. Another layer of protocol is needed for server-client communication. We break the problem down into these subproblems:
+We break the problem down into these subproblems:
 
 * a shared state that is thread-safe
 
 * threadpool for capping the number of connections
 
-* each client needs its own thread and its own specific state
+* each client needs its own thread and a separate state
 
 ### Threading
 
-The way Rust handles threading is super simple: it spawn a separate thread when a new client connects.
+This is my first naive implementation: spawn a separate thread when a new client connects.
 
 ```rust
 let listener = match TcpListener::bind(&addr) {
@@ -193,11 +167,11 @@ for stream in listener.incoming() {
 }
 ```
 
-However, when a client goes haywire and opens up millions of connections, the server will eventually run out of memory and crash. To keep the number of connections in check, we uses a threadpool.
+However, when a client goes haywire and opens up millions of connections, the server will eventually run out of memory and segfault. To cap the number of connections, use a threadpool.
 
 ### Threadpool
 
-The threadpool implementation is covered in the Rust book. This is duplication of a standard thread pool.
+The threadpool implementation is covered in the Rust book. It is interesting because it covers pretty much all grounds of Rust syntax and idiosyncrasies.
 
 ```rust
 use std::thread;
@@ -289,14 +263,13 @@ impl Worker {
 }
 ```
 
-The implementation is straightforward, we store the workers in a Vec. As long as the workers are not exhausted, we assign an FnOnce closure so the worker does the job exactly once. Message passing is used to ensure thread safety.
+The implementation is straightforward, we store the workers in a Vec. As long as the workers are not exhausted, we assign an FnOnce closure and the worker does job exactly once.
 
 Arc stands for atomic reference counting. Because Rc is not designed for use in multiple threads, it is not safe to be shared between threads. Arc can be shared. In Rust, there are two important traits to ensure thread safety: `Send` and `Sync`. The two traits usually appears in pair. `Send` means you can send the data to threads safely without trigger a deepcopy, and the compiler will implement Send for you when deemed fit. Basically, `Arc::clone(&locked_obj)` creates an atomic reference that can be sent(as in `mpsc`) or move to another thread(as in `move` closure). By clone an Arc, the reference count is incremented. When the clone is dropped, the counter is decremented. When all the references across all threads are destroyed, such that `count == 0`, then the chunk of memory is released. `Sync` means every modification to the data will be synchronized between the threads, it is what `Mutex` and `RwLock` are for.
 
 To use threadpool, simply replace `thread::spawn` with 
 ```rust
 let pool = ThreadPool::new(settings.threads);
-
 for stream in listener.incoming() {
     let stream = stream.unwrap();
     pool.execute(move || {
@@ -362,9 +335,9 @@ fn on_disconnect(global: &LockedGlobal) {
 }
 ```
 
-This is the entirety of the main moving part of the SharedState. Basically, it is a state that everyone has access to. `connections` is a count of how many clients are connected, `settings` is a shared copy of the setting, `vec_store` stores the Updates and `history` records usage statistics.
+`SharedState` is a state that all children processes have access to. `connections` is a count of how many clients are connected, `settings` is a shared copy of the setting, `vec_store` stores the Updates and `history` records usage statistics.
 
-To append to `history`, we spawn another thread that executes every once in a while depends on the granularity we want. With this, we can call `PERF` command to get useful statistics such as inserts/sec and total storage across time. Then maybe plot it on a dashboard.
+As a demonstration of modifying a mutable shared state, here is duplication of the code to append to `history`. Spawn another thread that executes every x seconds depends on the desired granularity.
 
 ```rust
 // Timer for recording history
@@ -407,11 +380,15 @@ To append to `history`, we spawn another thread that executes every once in a wh
 }
 ```
 
-This piece of code is pretty bizarre at a first glance but it makes perfect sense. The most noticeable thing is the usage of scopes. This is due to a caveat in Rust ownership. Basically, by obtaining a lock `let mut rwdr = global_copy_timer.write().unwrap();`, you will end up with a `RwLockWriteGuard` whose only purpose is the `Drop` trait: release the exclusive write access of a lock when dropped. This means we must have read lock and write lock in separate scopes, or else we'll end up in a deadlock. To learn more about Rust synchronization and locking in general, read about the [`parking_lot` crate](https://github.com/Amanieu/parking_lot) and [WTF::ParkingLot](https://webkit.org/blog/6161/locking-in-webkit/).
+This piece of code is pretty bizarre at a first glance due to the usage of scopes. Rust has a particular take on scoping: especially with Locks. Basically, obtaining a lock 
+
+```let mut rwdr = global_copy_timer.write().unwrap();```
+
+returns a `RwLockWriteGuard`. When it goes out scope(`Drop`ped), the exclusive write access is released. This means we must have read lock and write lock in separate scopes, or else we'll end up in a deadlock. In this case, since the write lock should be released when the thread is sleeping, it is dropped explicitly.
 
 ### Counting
 
-The idea is to automatically flush to disk on every 10000 inserts and clear the memory. This is done by recording two sizes. One is a nominal count: rows in memory plus rows in files; the other is just the rows in memory. When the rows in memory exceeds a threshold, append to the file and clear memory. Then, when another client needs historical data, server can load the data from file without affecting the count. This is also a good way to avoid race condition, the writer only cares about the count in memory.
+The idea is to automatically flush to disk on every 10k inserts and clear the memory. This is done by recording two sizes: a nominal count: rows in memory plus rows in files; and an actual count of rows in memory. When the rows in memory exceeds a threshold, append to the file and clear memory. Then, when another client needs historical data, the server can load data from file without affecting the count.
 
 Here is the implementation of auto flush: 
 
@@ -443,11 +420,11 @@ pub fn add(&mut self, new_vec : dtf::Update) {
 }
 ```
 
-`self` is borrowed in the first line so we have to manually create a scope to drop `self`. This is a good example of how Rust developers fight the compiler. This makes the code a lot cleaner and mentally tractable.
+`self` is borrowed in the first line so we have to manually create a scope to drop `self`. This piece of code is a good (bad?) example of how Rust developers fight the compiler. This makes memory management a LOT cleaner and way more tractable.
 
 ### Command Parser
 
-The command parser is still at infant stage. It is implemented using a series of match and if-else statements similar to Redis. I will refactor this should demand arise, the entire DSL will be redesigned.
+The command parser is still rudimentary as it is implemented using a series of match and if-else statements similar to Redis. However, it gets the job done. I will refactor this should demand arise.
 
 Here is a list of commands:
 
@@ -472,17 +449,15 @@ Here is a list of commands:
 * GET ALL
 * GET ALL AS JSON
 
-If not specified `AS JSON`, it uses the same serialization as described above.
-
-These are simple commands, not particularly interesting so I will skip these for now.
+If not specified `AS JSON`, it uses the above serialization format.
 
 ## Tools
 
-`dtfcat` is a simple wrapper for `.dtf` files.
+`dtfcat` is a simple reader for `.dtf` files. It can read metadata, convert dtf to csv, rebin and split into smaller files by time buckets.
 
 ## Client implementations
 
-I had some trouble writing a client in JS. Casey helped me a lot with the queue structure. Here is a reference implementation in TypeScript:
+I had some trouble writing a client in JavaScript. Here is an implementation in TypeScript:
 
 ```typescript
 const net = require('net');
@@ -670,22 +645,28 @@ export default class TectonicDB {
 }
 ```
 
-It uses a FIFO queue to keep the db calls in order. There are some edge cases and the we arrived at the above end result.
+It uses a FIFO queue to keep the db calls in order.
 
-There is also a connection pool class for distributing loads to different clients. It was quite an undertaking. Thankfully, all the other languages are synchronous.
-
-# Improvement
-
-* I have a basic Python client but it doesn't have the ability to decode dtf stream. So the next step is to either `extern C` or write a native decoder.
-
-* Distributed db would be really nice since the collection nodes (listeners) are colocated.
-
-* Event dispatch. Similar to PostgreSQL's event system. This requires significant rework on the query DSL and client.
-
-* Master-slave replication
+There is also a connection pool class for distributing loads. It was quite an undertaking.
 
 # Conclusion
 
-I am pretty happy with the end result. The database compiles to a 4mb binary executable and can handle billions of inserts per second. The bottleneck is always the client. 
+You've made it this far, congrats! Here is a screenshot of tectonic running in semi-production:
+
+![TectonicDB in action](https://i.imgur.com/PttCo1v.png)
+
+It inserts ~100k records every 30 seconds. or 3000 inserts per second. Hope this post is helpful to your own development.
+
+I am pretty happy with the end result. The database compiles to a 4mb binary executable and can handle millions of inserts per second. The bottleneck was always the client. 
 
 Although Rust is not the fastest language to prototype with, the compiler improves the quality of life drastically.
+
+# Improvement
+
+* Python client.
+
+* Sharding
+
+* Event dispatch. Similar to PostgreSQL's event system.
+
+* Master-slave replication
