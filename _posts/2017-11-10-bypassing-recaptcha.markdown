@@ -9,7 +9,7 @@ This post is a detailed breakdown of how to bypass Google reCaptcha.
 
 # Background
 
-A page is protected by reCaptcha means that form must be accompanied by `g-recaptcha-response` which is then verified on the backend. Based on the probability calculated by a machine learning algorithm, reCaptcha gives you a range of captchas: from none to very difficult. Instead of having to solve the captcha by hand, this method allows using another browser session cookie which Google deems "human" to bypass a captcha. These "valid" browser sessions can be farmed en masse(I will not cover).
+"Protected by reCaptcha" means that a form has to be accompanied by a `g-recaptcha-response` field, which is then verified by the backend through a request to reCaptcha server. Based on the probability calculated by a machine learning algorithm, reCaptcha may give you captchas with difficulty nonexistent, very hard and everything in between. Instead of having to solve the captcha by hand, this method allows using another valid browser session cookie which Google deems "human" to effectively bypass a captcha. These "valid" browser sessions can be farmed en masse. According to [this report](https://www.blackhat.com/docs/asia-16/materials/asia-16-Sivakorn-Im-Not-a-Human-Breaking-the-Google-reCAPTCHA-wp.pdf), "[...] a checkbox captcha is obtained after the beginning of the 9th day from the cookie’s creation, without requiring any browsing activities and type of network connection [...]. Our experiment also revealed that each cookie can receive up to 8 checkbox captchas in a day."
 
 # Overview
 
@@ -74,7 +74,7 @@ Now, there is a way to farm these valid harvestor sessions such that the first 2
 return nightmare
 .evaluate((key) => {
     document.getElementById("g-recaptcha-response").innerHTML = key;
-    checkoutAfterCaptcha(); // uncomment to work!
+    checkoutAfterCaptcha();
 }, await validToken(pageLoadedTime))
 .wait(2000)
 .screenshot('ok.png')
