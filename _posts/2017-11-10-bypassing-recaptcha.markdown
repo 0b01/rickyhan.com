@@ -5,7 +5,7 @@ date:   2017-11-10 00:00:00 -0400
 categories: jekyll update
 ---
 
-Bypassing Google reCaptcha is possible if not simple. This post is a detailed breakdown of how it works.
+This post is a detailed breakdown of how to bypass Google reCaptcha.
 
 # Background
 
