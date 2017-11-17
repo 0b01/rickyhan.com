@@ -7,6 +7,8 @@ categories: jekyll update
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 
+**Update: Nov. 17 2017:** All algorithms on this page have been [ported to Rust](https://github.com/rickyhan/tectonicdb/tree/master/src/lib).
+
 In this short post I will demonstrate how to use the order book. I am giving out  visualization algorithms for free.
 
 Visualization should lead to truth and understanding. There are different ways of visualizing the order book. We will start with the simplest one.
