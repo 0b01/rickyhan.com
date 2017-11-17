@@ -306,16 +306,7 @@ updates = to_updates(events) # expensive
 
 
 ```python
-def plot_price_levels(updates, zorder=0, max_threshold=100, min_threshold=0.5):
-    max_size = 0
-    list_of_updates = []
-    for price, value in updates.items():
-        for time, size in value.items():
-            list_of_updates.append((price,time,size))
-
-            if size > max_size:
-                max_size = size
-    
+def plot_price_levels(updates, zorder=0, max_threshold=100, min_threshold=0.5):    
     ys = []
     xmins = []
     xmaxs = []
@@ -378,9 +369,8 @@ def get_ob():
                 for price, size in sidedicts.items():
                     if size == 0:
                         del sidedicts[price]
-            orderbook[e.ts] = copy.deepcopy(most_recent_orderbook)
-        orderbook[e.ts]["bids" if e.is_bid else "asks"][e.price] = e["size"]
-        most_recent_orderbook["bids" if e.is_bid else "asks"][e.price] = e["size"]
+            most_recent_orderbook["bids" if e.is_bid else "asks"][e.price] = e["size"]
+            orderbook[e.ts] = copy.deepcopy(most_recent_orderbook)        
     return orderbook
 ```
 
