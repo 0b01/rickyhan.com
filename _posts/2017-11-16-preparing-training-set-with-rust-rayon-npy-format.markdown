@@ -129,10 +129,8 @@ use record::*;
 static MAGIC_VALUE : &[u8] = &[0x93, 0x4E, 0x55, 0x4D, 0x50, 0x59];
 
 fn get_header() -> String {
-    {%raw%}
-    format!("{{'descr': [('data', '>f4')],'fortran_order': False,'shape': ({},{},{})}}",
-        BATCH_SIZE, TIME_STEP, INPUT_DIM)
-    {%endraw%}
+    {%raw%}format!("{{'descr': [('data', '>f4')],'fortran_order': False,'shape': ({},{},{})}}",
+        BATCH_SIZE, TIME_STEP, INPUT_DIM){%endraw%}
 }
 
 /// these are just from the spec
@@ -236,15 +234,13 @@ Now we can load some of these numpy files with PyTorch:
 class orderbookDataset(torch.utils.Dataset):
     def __init__(self):
         self.data_files = os.listdir('data_dir')
-        sort(self.data_files)G
 
     def __getindex__(self, idx):
         return np.load(self.data_files[idx])
 
     def __len__(self):
         return len(self.data_files)
-
-
+        
 dset = OrderbookDataset()
 loader = torch.utils.DataLoader(dset, num_workers=8)
 ```
