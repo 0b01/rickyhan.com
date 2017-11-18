@@ -194,13 +194,13 @@ fn main() {
 }
 ```
 
-This is a straightforward implementation of the serializer. Now we can load some of these numpy files with PyToch:
+This is a straightforward implementation of the serializer. Now we can load some of these numpy files with PyTorch:
 
 ```python
 class orderbookDataset(torch.utils.Dataset):
     def __init__(self):
         self.data_files = os.listdir('data_dir')
-        sort(self.data_files)
+        sort(self.data_files)G
 
     def __getindex__(self, idx):
         return np.load(self.data_files[idx])
@@ -215,8 +215,6 @@ loader = torch.utils.DataLoader(dset, num_workers=8)
 
 ## Conclusion
 
-Using Rust to prepare training set is as easy as it get.
+Using Rust to prepare training set is about as easy as it gets. Amazing language
 
 # [If you find this article helpful, consider signing up to my email list](https://tinyletter.com/rickyhan)
-
-<form style="border:1px solid #ccc;padding:3px;text-align:center;" action="https://tinyletter.com/rickyhan" method="post" target="popupwindow" onsubmit="window.open('https://tinyletter.com/rickyhan', 'popupwindow', 'scrollbars=yes,width=800,height=600');return true"><p><label for="tlemail">Enter your email address</label></p><p><input type="text" style="width:140px" name="email" id="tlemail" /></p><input type="hidden" value="1" name="embed"/><input type="submit" value="Subscribe" /><p><a href="https://tinyletter.com" target="_blank">powered by TinyLetter</a></p></form>
