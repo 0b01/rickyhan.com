@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Gradient Trader Part 3: How to Efficiently Store and Use Order Book Data"
+title:  "Gradient Trader Part 3: Efficient Storage of Order Book Data"
 date:   2017-10-27 22:37:01 -0400
 categories: jekyll update
 ---
