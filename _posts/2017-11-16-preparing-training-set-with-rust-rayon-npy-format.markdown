@@ -129,8 +129,10 @@ use record::*;
 static MAGIC_VALUE : &[u8] = &[0x93, 0x4E, 0x55, 0x4D, 0x50, 0x59];
 
 fn get_header() -> String {
-    format!("{{{{'descr': [('data', '>f4')],'fortran_order': False,'shape': ({{}},{{}},{{}})}}}}",
+    {%raw%}
+    format!("{{'descr': [('data', '>f4')],'fortran_order': False,'shape': ({},{},{})}}",
         BATCH_SIZE, TIME_STEP, INPUT_DIM)
+    {%endraw%}
 }
 
 /// these are just from the spec

@@ -207,10 +207,14 @@ use std::io::Write;</p>
 
 <p>static MAGIC_VALUE : &amp;[u8] = &amp;[0x93, 0x4E, 0x55, 0x4D, 0x50, 0x59];</p>
 
-<p>fn get_header() -&gt; String {
-    format!(“,,)}}}}”,
-        BATCH_SIZE, TIME_STEP, INPUT_DIM)
-}</p>
+<p>fn get_header() -&gt; String {</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>format!("{{'descr': [('data', '&gt;f4')],'fortran_order': False,'shape': ({},{},{})}}",
+    BATCH_SIZE, TIME_STEP, INPUT_DIM)
+</code></pre>
+</div>
+
+<p>}</p>
 
 <p>/// these are just from the spec
 pub fn write(wtr: &amp;mut Write, record: &amp;Record) {

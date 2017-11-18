@@ -6,8 +6,8 @@
 </description>
     <link>http://rickyhan.com/</link>
     <atom:link href="http://rickyhan.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Fri, 17 Nov 2017 22:52:26 -0500</pubDate>
-    <lastBuildDate>Fri, 17 Nov 2017 22:52:26 -0500</lastBuildDate>
+    <pubDate>Fri, 17 Nov 2017 22:55:34 -0500</pubDate>
+    <lastBuildDate>Fri, 17 Nov 2017 22:55:34 -0500</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
     
       <item>
@@ -142,10 +142,14 @@ use std::io::Write;&lt;/p&gt;
 
 &lt;p&gt;static MAGIC_VALUE : &amp;amp;[u8] = &amp;amp;[0x93, 0x4E, 0x55, 0x4D, 0x50, 0x59];&lt;/p&gt;
 
-&lt;p&gt;fn get_header() -&amp;gt; String {
-    format!(“,,)}}}}”,
-        BATCH_SIZE, TIME_STEP, INPUT_DIM)
-}&lt;/p&gt;
+&lt;p&gt;fn get_header() -&amp;gt; String {&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;format!(&quot;{{&#39;descr&#39;: [(&#39;data&#39;, &#39;&amp;gt;f4&#39;)],&#39;fortran_order&#39;: False,&#39;shape&#39;: ({},{},{})}}&quot;,
+    BATCH_SIZE, TIME_STEP, INPUT_DIM)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;}&lt;/p&gt;
 
 &lt;p&gt;/// these are just from the spec
 pub fn write(wtr: &amp;amp;mut Write, record: &amp;amp;Record) {
