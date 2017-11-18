@@ -194,7 +194,43 @@ fn main() {
 }
 ```
 
-This is a straightforward implementation of the serializer. Now we can load some of these numpy files with PyTorch:
+Printing the tensor out:
+
+```python
+import numpy as np
+dataset = np.load("test.npy")
+print dataset.shape
+print dataset
+```
+
+```python
+    (4, 5, 6)
+    [[[(   0.,) (   1.,) (   2.,) (   3.,) (   4.,) (   5.,)]
+    [(  10.,) (  11.,) (  12.,) (  13.,) (  14.,) (  15.,)]
+    [(  20.,) (  21.,) (  22.,) (  23.,) (  24.,) (  25.,)]
+    [(  30.,) (  31.,) (  32.,) (  33.,) (  34.,) (  35.,)]
+    [(  40.,) (  41.,) (  42.,) (  43.,) (  44.,) (  45.,)]]
+
+    [[( 100.,) ( 101.,) ( 102.,) ( 103.,) ( 104.,) ( 105.,)]
+    [( 110.,) ( 111.,) ( 112.,) ( 113.,) ( 114.,) ( 115.,)]
+    [( 120.,) ( 121.,) ( 122.,) ( 123.,) ( 124.,) ( 125.,)]
+    [( 130.,) ( 131.,) ( 132.,) ( 133.,) ( 134.,) ( 135.,)]
+    [( 140.,) ( 141.,) ( 142.,) ( 143.,) ( 144.,) ( 145.,)]]
+
+    [[( 200.,) ( 201.,) ( 202.,) ( 203.,) ( 204.,) ( 205.,)]
+    [( 210.,) ( 211.,) ( 212.,) ( 213.,) ( 214.,) ( 215.,)]
+    [( 220.,) ( 221.,) ( 222.,) ( 223.,) ( 224.,) ( 225.,)]
+    [( 230.,) ( 231.,) ( 232.,) ( 233.,) ( 234.,) ( 235.,)]
+    [( 240.,) ( 241.,) ( 242.,) ( 243.,) ( 244.,) ( 245.,)]]
+
+    [[( 300.,) ( 301.,) ( 302.,) ( 303.,) ( 304.,) ( 305.,)]
+    [( 310.,) ( 311.,) ( 312.,) ( 313.,) ( 314.,) ( 315.,)]
+    [( 320.,) ( 321.,) ( 322.,) ( 323.,) ( 324.,) ( 325.,)]
+    [( 330.,) ( 331.,) ( 332.,) ( 333.,) ( 334.,) ( 335.,)]
+    [( 340.,) ( 341.,) ( 342.,) ( 343.,) ( 344.,) ( 345.,)]]]
+```
+
+Now we can load some of these numpy files with PyTorch:
 
 ```python
 class orderbookDataset(torch.utils.Dataset):
@@ -217,4 +253,4 @@ loader = torch.utils.DataLoader(dset, num_workers=8)
 
 Using Rust to prepare training set is about as easy as it gets. Amazing language
 
-# [If you find this article helpful, consider signing up to my email list](https://tinyletter.com/rickyhan)
+# [If you find this article helpful, you should sign up to get updates.](https://tinyletter.com/rickyhan)
