@@ -6,13 +6,1449 @@
 </description>
     <link>http://rickyhan.com/</link>
     <atom:link href="http://rickyhan.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 24 Sep 2017 01:48:25 -0400</pubDate>
-    <lastBuildDate>Sun, 24 Sep 2017 01:48:25 -0400</lastBuildDate>
+    <pubDate>Fri, 17 Nov 2017 22:52:26 -0500</pubDate>
+    <lastBuildDate>Fri, 17 Nov 2017 22:52:26 -0500</lastBuildDate>
     <generator>Jekyll v3.0.1</generator>
     
       <item>
+        <title>Gradient Trader Part 4: Preparing Training Set with Rust, Rayon and npy binary format</title>
+        <description>&lt;p&gt;Preparing dataset for machine learning is a CPU heavy task. To optimize for GPU utilization during training, it is imperative to preprocess the data. What is the proper way to approach this? This depends on how much data you have.&lt;/p&gt;
+
+&lt;p&gt;I recently encountered this problem while training a new model. I had 60GB &lt;a href=&quot;http://rickyhan.com/jekyll/update/2017/10/27/how-to-handle-order-book-data.html&quot;&gt;compressed&lt;/a&gt; order book data with which I need to generate a 680GB dataset.&lt;/p&gt;
+
+&lt;p&gt;This post is about the awkward situation where the dataset is not big enough to warrant Spark but would take too long to run on your computer. A top-end deep learning box only has a maximum of 32 cores while AWS has 128 cores on demand for $13.388/hr. A simple back-of-the-envelop calculation shows that if a task takes 24 hours on an Intel i7 with 8 threads, or &lt;code class=&quot;highlighter-rouge&quot;&gt;24 * 8 (hour x thread)&lt;/code&gt; then it would only take ~1 hour to run on a 128 core instance for the price of a burrito. Another pro is the huge memory(1952GB) that should fit most datasets.&lt;/p&gt;
+
+&lt;p&gt;I use Rust to do the heavy lifting and in this post I will cover these two aspects:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;Using multiple cores&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Saving to Numpy format&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h1 id=&quot;parallel-programming&quot;&gt;Parallel Programming&lt;/h1&gt;
+
+&lt;p&gt;I suck at writing parallel code. About 4 months ago, I wrote this monstrocity. Feel free to skip it.&lt;/p&gt;
+
+&lt;p&gt;```python
+import multiprocessing
+import tensorflow as tf
+from functools import partial
+import gc&lt;/p&gt;
+
+&lt;p&gt;def _bytes_feature(value):
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))&lt;/p&gt;
+
+&lt;p&gt;batch_size = 256
+time_steps = 256
+max_scale = max(SCALES)
+min_padding = max_scale * time_steps  # of minutes must be padded in front and back
+maximum_sequential_epoch_sequence = range(get_min_epoch(), get_max_epoch(), 60)
+ok_epochs = set(maximum_sequential_epoch_sequence[min_padding:-min_padding])
+# ok_epochs = set(list(ok_epochs)[:len(ok_epochs)/8])
+# ok_epochs = set(list(ok_epochs)[len(ok_epochs)/8   : len(ok_epochs)/8&lt;em&gt;2])
+# ok_epochs = set(list(ok_epochs)[len(ok_epochs)/8&lt;/em&gt;2 : len(ok_epochs)/8&lt;em&gt;3])
+# ok_epochs = set(list(ok_epochs)[len(ok_epochs)/8&lt;/em&gt;3 : len(ok_epochs)/8*4])&lt;/p&gt;
+
+&lt;h1 id=&quot;okepochs--setlistokepochslenokepochs84--lenokepochs85&quot;&gt;ok_epochs = set(list(ok_epochs)[len(ok_epochs)/8&lt;em&gt;4 : len(ok_epochs)/8&lt;/em&gt;5])&lt;/h1&gt;
+&lt;p&gt;# ok_epochs = set(list(ok_epochs)[len(ok_epochs)/8&lt;em&gt;5 : len(ok_epochs)/8&lt;/em&gt;6])
+# ok_epochs = set(list(ok_epochs)[len(ok_epochs)/8&lt;em&gt;6 : len(ok_epochs)/8&lt;/em&gt;7])
+# ok_epochs = set(list(ok_epochs)[len(ok_epochs)/8*7 : ])&lt;/p&gt;
+
+&lt;p&gt;def gen_all_the_tf_records(n, myepochs):
+    tfrecords_filename = ‘/home/ubuntu/tfrecords/5/{}.tfrecords’.format(n)
+    writer = tf.python_io.TFRecordWriter(tfrecords_filename)
+    for random_epochs in tqdm(myepochs):
+        features = [redacted]
+        minibatch = np.stack(features, axis=0)&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    example = tf.train.Example(features=tf.train.Features(feature={
+        &#39;minibatch&#39;: _bytes_feature(minibatch.tostring())
+    }))
+    writer.write(example.SerializeToString())
+    gc.collect()
+writer.close()
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;def tfrecords_cli():
+    global ok_epochs
+    iterable = range(len(ok_epochs) / batch_size)
+    arrs = []
+    threads = 35
+    for _ in range(threads):
+        arrs.append([])&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;for i, _ in tqdm(enumerate(iterable)):
+    for arr_i in range(threads):
+        if batch_size &amp;gt; len(ok_epochs):
+            break
+        rand = random.sample(ok_epochs, batch_size)
+        arrs[arr_i].append(rand)
+        ok_epochs -= set(rand)
+gc.collect()
+ps = []
+for i in range(threads):
+    p = multiprocessing.Process(
+        target=gen_all_the_tf_records, args=(i, arrs[i]))
+    ps.append(p)
+for i, p in enumerate(ps):
+    print i , &quot;started&quot;
+    p.start() ```
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Notice how the &lt;code class=&quot;highlighter-rouge&quot;&gt;ok_epochs&lt;/code&gt; are changed during every run because it just wouldn’t fit into memory. This piece of crap worked and I don’t want to talk about it.&lt;/p&gt;
+
+&lt;p&gt;Compare it to Rayon, parallelization requires virtually no change. This example is taken from &lt;a href=&quot;http://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;rust
+// sequential
+let total_price = stores.iter()
+                        .map(|store| store.compute_price(&amp;amp;list))
+                        .sum();
+// parallel
+let total_price = stores.into_par_iter()
+                        .map(|store| store.compute_price(&amp;amp;list))
+                        .sum();
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;When I tested Rayon on my laptop, it &lt;em&gt;really&lt;/em&gt; was 4x as fast. This is about as easy it gets when it comes to multi-core programming.&lt;/p&gt;
+
+&lt;h1 id=&quot;using-numpy-format&quot;&gt;Using Numpy format&lt;/h1&gt;
+
+&lt;p&gt;I save minibatches in &lt;a href=&quot;https://docs.scipy.org/doc/numpy-1.13.0/neps/npy-format.html&quot;&gt;numpy binary format&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;To restore a numpy array from disk:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+import numpy as np
+minibatch = np.load(&quot;minibatch.npy&quot;)
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Again, minimal coding required and no tfrecords involved.&lt;/p&gt;
+
+&lt;p&gt;Since I’m dealing with spatial-temporal data(for RNN), I need to generate feature tensor of shape &lt;code class=&quot;highlighter-rouge&quot;&gt;[batch_size, time_step, input_dim]&lt;/code&gt;. To do this, I wrote a serializer for the &lt;code class=&quot;highlighter-rouge&quot;&gt;npy&lt;/code&gt; format.&lt;/p&gt;
+
+&lt;p&gt;```rust
+// write_npy.rs
+use byteorder::{BE, LE, WriteBytesExt};
+use std::io::Write;&lt;/p&gt;
+
+&lt;p&gt;use record::*;&lt;/p&gt;
+
+&lt;p&gt;static MAGIC_VALUE : &amp;amp;[u8] = &amp;amp;[0x93, 0x4E, 0x55, 0x4D, 0x50, 0x59];&lt;/p&gt;
+
+&lt;p&gt;fn get_header() -&amp;gt; String {
+    format!(“,,)}}}}”,
+        BATCH_SIZE, TIME_STEP, INPUT_DIM)
+}&lt;/p&gt;
+
+&lt;p&gt;/// these are just from the spec
+pub fn write(wtr: &amp;amp;mut Write, record: &amp;amp;Record) {
+    let _ = wtr.write(MAGIC_VALUE);
+    let _ = wtr.write_u8(0x01); // major version
+    let _ = wtr.write_u8(0x00); // minor version
+    let header = &amp;amp;get_header();
+    let header_len = header.len();
+    let _ = wtr.write_u16::&lt;le&gt;(header_len as u16);
+    let _ = wtr.write(header.as_bytes()); // header&lt;/le&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;for batch in record.iter() {
+    for step in batch.iter() {
+        for input in step.iter() {
+            let _ = wtr.write_f32::&amp;lt;BE&amp;gt;(*input);
+        }
+    }
+} } ```
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;```rust
+// record.rs
+pub const INPUT_DIM: usize = 6;
+pub const TIME_STEP: usize = 5;
+pub const BATCH_SIZE: usize = 4;&lt;/p&gt;
+
+&lt;p&gt;// shape [batch_size, time_step, input_dim]
+pub type Record = [[[ f32 ; INPUT_DIM]; TIME_STEP]; BATCH_SIZE];
+```&lt;/p&gt;
+
+&lt;p&gt;```rust
+// main.rs&lt;/p&gt;
+
+&lt;p&gt;extern crate byteorder;
+mod write_npy;
+mod record;&lt;/p&gt;
+
+&lt;p&gt;use record::*;
+use std::io::BufWriter;
+use std::fs::File;&lt;/p&gt;
+
+&lt;p&gt;fn main() {
+    let fname = “minibatch.npy”;
+    let new_file = File::create(fname).unwrap();
+    let mut wtr = BufWriter::new(new_file);&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;let mut record = [[[ 0_f32 ; INPUT_DIM]; TIME_STEP]; BATCH_SIZE];
+for batch in 0..BATCH_SIZE {
+    for step in 0..TIME_STEP {
+        for dim in 0..INPUT_DIM {
+            record[batch][step][dim] = (100 * batch + 10 * step + 1* dim) as f32;
+        }
+    }
+}
+
+write_npy::write(&amp;amp;mut wtr, &amp;amp;record); } ```
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;This is a straightforward implementation of the serializer. Now we can load some of these numpy files with PyToch:&lt;/p&gt;
+
+&lt;p&gt;```python
+class orderbookDataset(torch.utils.Dataset):
+    def &lt;strong&gt;init&lt;/strong&gt;(self):
+        self.data_files = os.listdir(‘data_dir’)
+        sort(self.data_files)&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;def __getindex__(self, idx):
+    return np.load(self.data_files[idx])
+
+def __len__(self):
+    return len(self.data_files)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;dset = OrderbookDataset()
+loader = torch.utils.DataLoader(dset, num_workers=8)
+```&lt;/p&gt;
+
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;Using Rust to prepare training set is as easy as it get.&lt;/p&gt;
+
+&lt;h1 id=&quot;if-you-find-this-article-helpful-consider-signing-up-to-my-email-listhttpstinylettercomrickyhan&quot;&gt;&lt;a href=&quot;https://tinyletter.com/rickyhan&quot;&gt;If you find this article helpful, consider signing up to my email list&lt;/a&gt;&lt;/h1&gt;
+
+&lt;form style=&quot;border:1px solid #ccc;padding:3px;text-align:center;&quot; action=&quot;https://tinyletter.com/rickyhan&quot; method=&quot;post&quot; target=&quot;popupwindow&quot; onsubmit=&quot;window.open(&#39;https://tinyletter.com/rickyhan&#39;, &#39;popupwindow&#39;, &#39;scrollbars=yes,width=800,height=600&#39;);return true&quot;&gt;&lt;p&gt;&lt;label for=&quot;tlemail&quot;&gt;Enter your email address&lt;/label&gt;&lt;/p&gt;&lt;p&gt;&lt;input type=&quot;text&quot; style=&quot;width:140px&quot; name=&quot;email&quot; id=&quot;tlemail&quot; /&gt;&lt;/p&gt;&lt;input type=&quot;hidden&quot; value=&quot;1&quot; name=&quot;embed&quot; /&gt;&lt;input type=&quot;submit&quot; value=&quot;Subscribe&quot; /&gt;&lt;p&gt;&lt;a href=&quot;https://tinyletter.com&quot; target=&quot;_blank&quot;&gt;powered by TinyLetter&lt;/a&gt;&lt;/p&gt;&lt;/form&gt;
+</description>
+        <pubDate>Wed, 15 Nov 2017 23:00:00 -0500</pubDate>
+        <link>http://rickyhan.com/jekyll/update/2017/11/15/preparing-training-set-with-rust-rayon-npy-format.html</link>
+        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/11/15/preparing-training-set-with-rust-rayon-npy-format.html</guid>
+        
+        
+        <category>jekyll</category>
+        
+        <category>update</category>
+        
+      </item>
+    
+      <item>
+        <title>Hacking Google reCaptcha</title>
+        <description>&lt;p&gt;This post is a detailed breakdown of how to bypass Google reCaptcha.&lt;/p&gt;
+
+&lt;h1 id=&quot;background&quot;&gt;Background&lt;/h1&gt;
+
+&lt;p&gt;“Protected by reCaptcha” means that a form has to be accompanied by a &lt;code class=&quot;highlighter-rouge&quot;&gt;g-recaptcha-response&lt;/code&gt; field, which is then verified by the backend through a request to reCaptcha server. Based on the probability calculated by a machine learning algorithm, reCaptcha may give you captchas with difficulty nonexistent, very hard and everything in between. Instead of having to solve the captcha by hand, this method allows using another valid browser session cookie which Google deems “human” to effectively bypass a captcha. These “valid” browser sessions can be farmed en masse. According to &lt;a href=&quot;https://www.blackhat.com/docs/asia-16/materials/asia-16-Sivakorn-Im-Not-a-Human-Breaking-the-Google-reCAPTCHA-wp.pdf&quot;&gt;this report&lt;/a&gt;, “[…] a checkbox captcha is obtained after the beginning of the 9th day from the cookie’s creation, without requiring any browsing activities and type of network connection […]. Our experiment also revealed that each cookie can receive up to 8 checkbox captchas in a day.”&lt;/p&gt;
+
+&lt;h1 id=&quot;overview&quot;&gt;Overview&lt;/h1&gt;
+
+&lt;p&gt;I used a simple nodejs server that serves a form to collect Google reCaptcha response. The caveat is: the browser must have the same hostname as the real website which is achieved by changing the &lt;code class=&quot;highlighter-rouge&quot;&gt;/etc/hosts&lt;/code&gt; file or hosting a DNS server.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://i.imgur.com/0QqEQDI.png&quot; alt=&quot;harvestor&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;javascript
+app.post(&#39;/submit&#39;, function(req, res) {
+  log(&#39;info&#39;, `Successful Token: ${req.body[&#39;g-recaptcha-response&#39;]}`);
+  const token = req.body[&#39;g-recaptcha-response&#39;];
+  const timestamp = new Date();
+  saveToken(token, timestamp);
+  return res.redirect(`${config.remotehost}:${app.get(&#39;port&#39;)}/harvest`);
+});
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;On the other hand, I am using a browser automation tool to submit a form which is protected by recaptcha. We need &lt;code class=&quot;highlighter-rouge&quot;&gt;g-recaptcha-response&lt;/code&gt; in a hidden field. So when the page is loaded, we &lt;code class=&quot;highlighter-rouge&quot;&gt;await&lt;/code&gt; for a valid token:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;js
+await validToken(pageLoadedTime)
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;And this then sends a message to all connected harvestors via websocket:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;js
+function validToken(pageLoadedTime) {
+    wss.broadcast(&#39;needtoken&#39;);
+    return new Promise((resolve, reject) =&amp;gt; {
+        (function wait() {
+            for (let token of tokens)
+                if (token.timestamp.getTime() &amp;gt; pageLoadedTime)
+                    resolve(token.token);
+            setTimeout( wait, 200 );
+        })();
+    });
+}
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;We use &lt;a href=&quot;https://developers.google.com/recaptcha/docs/invisible&quot;&gt;invisible recaptcha&lt;/a&gt; on the harvestor page, because its actions can be programmatically triggered.&lt;/p&gt;
+
+&lt;p&gt;```html&lt;/p&gt;
+&lt;div class=&quot;g-recaptcha&quot; data-sitekey=&quot;&amp;lt;%= sitekey %&amp;gt;&quot; data-callback=&quot;sub&quot; data-size=&quot;invisible&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+  function sub(){
+    document.getElementById(&quot;submit&quot;).click();
+  }
+  var wss = new WebSocket(&quot;ws://www.hostname.com:8080&quot;, &quot;protocolOne&quot;);
+  wss.onmessage = function (event) {
+    if(&quot;needtoken&quot; === event.data) {
+      grecaptcha.execute();
+    } else {
+      console.log(&quot;CONNECTED&quot;);
+    }
+  }
+&lt;/script&gt;
+
+&lt;p&gt;```&lt;/p&gt;
+
+&lt;p&gt;Now, there is a way to farm these valid harvestor sessions such that the first 20 or so recaptcha verifications are bypassed. Now the automated browser window has a valid reCaptcha, it needs to fill the hidden field and call the callback function! Great work Google!&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;js
+return nightmare
+.evaluate((key) =&amp;gt; {
+    document.getElementById(&quot;g-recaptcha-response&quot;).innerHTML = key;
+    checkoutAfterCaptcha();
+}, await validToken(pageLoadedTime))
+.wait(2000)
+.screenshot(&#39;ok.png&#39;)
+.end();
+&lt;/code&gt;&lt;/p&gt;
+</description>
+        <pubDate>Thu, 09 Nov 2017 23:00:00 -0500</pubDate>
+        <link>http://rickyhan.com/jekyll/update/2017/11/09/bypassing-recaptcha.html</link>
+        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/11/09/bypassing-recaptcha.html</guid>
+        
+        
+        <category>jekyll</category>
+        
+        <category>update</category>
+        
+      </item>
+    
+      <item>
+        <title>Gradient Trader Part 3: How to Efficiently Store and Use Order Book Data</title>
+        <description>&lt;p&gt;Dealing with order book data is a problem everyone encounters at some point. The more professional a firm is, the more severe the problem gets.&lt;/p&gt;
+
+&lt;p&gt;As documented in a &lt;a href=&quot;http://rickyhan.com/jekyll/update/2017/09/09/import-orderbook-from-exchanges.html&quot;&gt;previous post&lt;/a&gt;, I have been storing order book ticks to a PostgreSQL. Using an out-of-the-box solution seems like a good idea at first, but it stops working before you notice. After amassing a whopping 2 terabytes of data, the system gradually slowed down. In the meantime, I have been working on a datastore specifically for storing order book updates. It uses a compressed binary file and stores one row in 12 bytes. This post is a short overview of how it is implemented. At its current stage, it is a filesystem backed append-only storage. The complexity is nowhere near SecDB, Athena, Quartz. In the future, I plan on adding clustering, master-slave replication, implement a better DSL, events, and &lt;a href=&quot;https://medium.com/@istanbul_techie/a-look-at-conflict-free-replicated-data-types-crdt-221a5f629e7e&quot;&gt;CRDT&lt;/a&gt; should the demand arise.&lt;/p&gt;
+
+&lt;h2 id=&quot;dense-tick-format-dtf--thinking-about-compression&quot;&gt;Dense Tick Format (.dtf) : thinking about compression&lt;/h2&gt;
+
+&lt;p&gt;First of all, structure data can be compressed. The key is finding a sweet spot between processing speed and storage efficiency. If you have read my previous posts, you will know that the contiguous data is of this shape:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;json
+{
+    &quot;ts&quot;: 509129207.487,
+    &quot;seq&quot;: 79683,
+    &quot;is_trade&quot;: false,
+    &quot;is_bid&quot;: false,
+    &quot;price&quot;: 0.00540787,
+    &quot;size&quot;: 1.2227914
+}
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;These 6 fields are the minimal amount of information to reconstruct the order book in its entirety. (&lt;a href=&quot;http://rickyhan.com/jekyll/update/2017/09/24/visualizing-order-book.html&quot;&gt;Note on reconstruction&lt;/a&gt;)&lt;/p&gt;
+
+&lt;h3 id=&quot;naive-approach&quot;&gt;Naive approach&lt;/h3&gt;
+
+&lt;p&gt;The naive approach is to use a CSV file. Storing it in plaintext (like txt) would require 45 bytes. Text file is neither efficient in storage nor in processing speed. We will compare our codecs against this baseline.&lt;/p&gt;
+
+&lt;h3 id=&quot;our-first-codec&quot;&gt;Our first codec&lt;/h3&gt;
+
+&lt;p&gt;Let’s do the bare minimum. Switching from ascii (1 byte per char), we use default data types to encode the same information:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+ts (u32): int
+seq (u32): int
+is_trade: (u8): bool
+is_bid: (u8): bool
+price: (f32): float
+size: (f32): float
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Timestamp is stored as an unsigned integer by multiplying the float by 1000.&lt;/p&gt;
+
+&lt;p&gt;Sums up to &lt;code class=&quot;highlighter-rouge&quot;&gt;4 + 4 + 1 + 1 + 4 + 4 = 18 bytes&lt;/code&gt;, a 60% reduction. This approach also takes significantly less time because string parsing is unnecessary. However, there are still plenty of low hanging fruits.&lt;/p&gt;
+
+&lt;h3 id=&quot;bitflags&quot;&gt;Bitflags&lt;/h3&gt;
+
+&lt;p&gt;Note how the bool is stored as a whole byte when it only takes 1 bit. This is because a byte is the smallest addressable unit in memory. We can squish the two bools into 1 byte by using bitflags. Now we have 17 bytes, a 5% reduction.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+ts (u32)
+seq (u32)
+((is_trade &amp;lt;&amp;lt; 1) | is_bid): (u8)
+price: (f32)
+size: (f32)
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;To do this, I used the &lt;code class=&quot;highlighter-rouge&quot;&gt;bitflags&lt;/code&gt; crate in Rust.&lt;/p&gt;
+
+&lt;p&gt;```rust
+// use bitflags macro to define a struct
+bitflags! {
+    struct Flags: u8 {
+        const FLAG_EMPTY   = 0b0000_0000;
+        const FLAG_IS_BID   = 0b0000_0001;
+        const FLAG_IS_TRADE = 0b0000_0010;
+    }
+}&lt;/p&gt;
+
+&lt;p&gt;let mut flags = Flags::FLAG_EMPTY;
+if self.is_bid { flags |= Flags::FLAG_IS_BID; }
+if self.is_trade { flags |= Flags::FLAG_IS_TRADE; }
+let _ = buf.write_u8(flags.bits());
+```&lt;/p&gt;
+
+&lt;h3 id=&quot;delta-encoding&quot;&gt;Delta encoding&lt;/h3&gt;
+
+&lt;p&gt;Instead of storing each tick as its own row, we can exploit the shared structure along the time axis, namely taking snapshot of time and sequence number. Since &lt;code class=&quot;highlighter-rouge&quot;&gt;timestamp&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;seq&lt;/code&gt; are discretely increasing fields, we can create a snapshot the usual size (int) and store the difference in a smaller data type(short). This method is called delta encoding.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+0. bool for is_snapshot
+1. if snapshot
+    4 bytes (u32): reference ts
+    2 bytes (u32): reference seq
+    2 bytes (u16): how many records between this snapshot and the next snapshot
+2. record
+    dts (u16): $ts - reference ts$, 2^16 = 65536 ms = ~65 seconds
+    dseq (u8) $seq - reference seq$ , 2^8 = 256
+    (is_trade &amp;lt;&amp;lt; 1) | is_bid`: (u8): bitwise and to store two bools in one byte
+    price: (f32)
+    size: (f32)
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;The idea is to save a snapshot every once in a while, and everytime when &lt;code class=&quot;highlighter-rouge&quot;&gt;dts&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;dseq&lt;/code&gt; are close to overflow, start a new snapshot and repeat. This on average saves 5 bytes, a 30% reduction. And the processing overhead is &lt;code class=&quot;highlighter-rouge&quot;&gt;O(1)&lt;/code&gt;. Here, we use only 12 bytes, 27% of the original codec.&lt;/p&gt;
+
+&lt;p&gt;There are other ways to futher reduce the size if we aren’t storing the whole order book. For example, contiguous tick prices tend to be close to each other, which means &lt;a href=&quot;https://gist.github.com/mfuerstenau/ba870a29e16536fdbaba&quot;&gt;zigzag encoding&lt;/a&gt; can be useful. If the price only goes upward(possible with a hypothetical ponzi scheme based funds), we can use &lt;a href=&quot;https://developers.google.com/protocol-buffers/docs/encoding&quot;&gt;varint&lt;/a&gt;. Also, doing delta encoding over the bytes could potentially save a few bytes, but would cost O(n) in additional processing time, same with run length encoding: first run a decompression over bytes, then decompress again.&lt;/p&gt;
+
+&lt;h3 id=&quot;metadata&quot;&gt;Metadata&lt;/h3&gt;
+
+&lt;p&gt;We also need to store metadata about the dtf file in the header.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;
+Offset 00: ([u8; 5]) magic value 0x4454469001 (DTF9001)
+Offset 05: ([u8; 20]) Symbol
+Offset 25: (u64) number of records
+Offset 33: (u32) max ts
+Offset 80: -- records - see below --
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;First put a magic value to identify the kind of file. Then store the symbol and exchange for the file in 20 characters. Then number of records and maximum timestamp so during decoding, it is unnecessary to read the entire file to find this information.&lt;/p&gt;
+
+&lt;p&gt;When dealing with large amount of structured data, it makes sense to build a simple binary file format to increase storage and processing efficiency.&lt;/p&gt;
+
+&lt;p&gt;If you want to learn more about file encodings, take a look at the &lt;a href=&quot;https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format&quot;&gt;spec for redis files&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h3 id=&quot;read-write-traits&quot;&gt;Read, Write traits&lt;/h3&gt;
+
+&lt;p&gt;The above encoder/decoder can support a multitude of buffers: BufWriter, TcpStream, String, etc… thanks to the trait system in Rust. As long as the buffer struct implements &lt;code class=&quot;highlighter-rouge&quot;&gt;Read&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;Write&lt;/code&gt; traits, it can used to transfer or store orderbook ticks. This saves a lot of boilerplate.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;rust
+fn write_magic_value(wtr: &amp;amp;mut Write) {
+    let _ = wtr.write(MAGIC_VALUE);
+}
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;designing-a-tcp-server&quot;&gt;Designing a TCP Server&lt;/h2&gt;
+
+&lt;p&gt;Now that a format is in place, it’s time to build a TCP server and start serving requests.&lt;/p&gt;
+
+&lt;h3 id=&quot;design&quot;&gt;Design&lt;/h3&gt;
+
+&lt;p&gt;We break the problem down into these subproblems:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;a shared state that is thread-safe&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;threadpool for capping the number of connections&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;each client needs its own thread and a separate state&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;threading&quot;&gt;Threading&lt;/h3&gt;
+
+&lt;p&gt;This is my first naive implementation: spawn a separate thread when a new client connects.&lt;/p&gt;
+
+&lt;p&gt;```rust
+let listener = match TcpListener::bind(&amp;amp;addr) {
+    Ok(listner) =&amp;gt; listener,
+    Err(e) =&amp;gt; panic!(format!(“”, e.description()))
+};&lt;/p&gt;
+
+&lt;p&gt;for stream in listener.incoming() {
+    let stream = stream.unwrap();
+    thread.spawn(move || {
+        let mut buf = [0; 2048];
+        loop {
+            let bytes_read = stream.read(&amp;amp;mut buf).unwrap();
+            if bytes_read == 0 { break }
+            let req = str::from_utf8(&amp;amp;buf[..(bytes_read-1)]).unwrap();
+            for line in req.split(‘\n’) {
+                stream.write(“Response”.as_bytes()).unwrap()
+            }
+        }
+    })
+}
+```&lt;/p&gt;
+
+&lt;p&gt;However, when a client goes haywire and opens up millions of connections, the server will eventually run out of memory and segfault. To cap the number of connections, use a threadpool.&lt;/p&gt;
+
+&lt;h3 id=&quot;threadpool&quot;&gt;Threadpool&lt;/h3&gt;
+
+&lt;p&gt;The threadpool implementation is covered in the Rust book. It is interesting because it covers pretty much all grounds of Rust syntax and idiosyncrasies.&lt;/p&gt;
+
+&lt;p&gt;```rust
+use std::thread;
+use std::sync::{mpsc, Arc, Mutex};&lt;/p&gt;
+
+&lt;p&gt;enum Message {
+    NewJob(Job),
+    Terminate,
+}&lt;/p&gt;
+
+&lt;p&gt;pub struct ThreadPool {
+    workers: Vec&lt;worker&gt;,
+    sender: mpsc::Sender&lt;message&gt;,
+}&lt;/message&gt;&lt;/worker&gt;&lt;/p&gt;
+
+&lt;p&gt;trait FnBox {
+    fn call_box(self: Box&lt;self&gt;);
+}&lt;/self&gt;&lt;/p&gt;
+
+&lt;p&gt;impl&amp;lt;F: FnOnce()&amp;gt; FnBox for F {
+    fn call_box(self: Box&lt;f&gt;) {
+        (*self)()
+    }
+}&lt;/f&gt;&lt;/p&gt;
+
+&lt;p&gt;type Job = Box&amp;lt;FnBox + Send + ‘static&amp;gt;;&lt;/p&gt;
+
+&lt;p&gt;impl ThreadPool {
+    pub fn new(size: usize) -&amp;gt; ThreadPool {
+        assert!(size &amp;gt; 0);
+        let (sender, receiver) = mpsc::channel();
+        let receiver = Arc::new(Mutex::new(receiver));
+        let mut workers = Vec::with_capacity(size);
+        for id in 0..size {
+            workers.push(Worker::new(id, receiver.clone()));
+        }
+        ThreadPool {
+            workers,
+            sender,
+        }
+    }
+    pub fn execute&lt;f&gt;(&amp;amp;self, f: F)
+        where
+            F: FnOnce() + Send + &#39;static
+    {
+        let job = Box::new(f);&lt;/f&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    self.sender.send(Message::NewJob(job)).unwrap();
+} }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;impl Drop for ThreadPool {
+    fn drop(&amp;amp;mut self) {
+        for _ in &amp;amp;mut self.workers {
+            self.sender.send(Message::Terminate).unwrap();
+        }
+        for worker in &amp;amp;mut self.workers {
+            if let Some(thread) = worker.thread.take() {
+                thread.join().unwrap();
+            }
+        }
+    }
+}
+struct Worker {
+    id: usize,
+    thread: Option&amp;lt;thread::JoinHandle&amp;lt;()»,
+}
+impl Worker {
+    fn new(id: usize, receiver: Arc&amp;lt;Mutex&amp;lt;mpsc::Receiver&lt;message&gt;&amp;gt;&amp;gt;) -&amp;gt;
+        Worker {
+        let thread = thread::spawn(move ||{
+            loop {
+                let message = receiver.lock().unwrap().recv().unwrap();
+                match message {
+                    Message::NewJob(job) =&amp;gt; {
+                        job.call_box();
+                    },
+                    Message::Terminate =&amp;gt; {
+                        break;
+                    },
+                }
+            }
+        });
+        Worker {
+            id,
+            thread: Some(thread),
+        }
+    }
+}
+```&lt;/message&gt;&lt;/p&gt;
+
+&lt;p&gt;The implementation is straightforward, we store the workers in a Vec. As long as the workers are not exhausted, we assign an FnOnce closure and the worker does job exactly once.&lt;/p&gt;
+
+&lt;p&gt;Arc stands for atomic reference counting. Because Rc is not designed for use in multiple threads, it is not safe to be shared between threads. Arc can be shared. In Rust, there are two important traits to ensure thread safety: &lt;code class=&quot;highlighter-rouge&quot;&gt;Send&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;Sync&lt;/code&gt;. The two traits usually appears in pair. &lt;code class=&quot;highlighter-rouge&quot;&gt;Send&lt;/code&gt; means you can send the data to threads safely without trigger a deepcopy, and the compiler will implement Send for you when deemed fit. Basically, &lt;code class=&quot;highlighter-rouge&quot;&gt;Arc::clone(&amp;amp;locked_obj)&lt;/code&gt; creates an atomic reference that can be sent(as in &lt;code class=&quot;highlighter-rouge&quot;&gt;mpsc&lt;/code&gt;) or move to another thread(as in &lt;code class=&quot;highlighter-rouge&quot;&gt;move&lt;/code&gt; closure). By clone an Arc, the reference count is incremented. When the clone is dropped, the counter is decremented. When all the references across all threads are destroyed, such that &lt;code class=&quot;highlighter-rouge&quot;&gt;count == 0&lt;/code&gt;, then the chunk of memory is released. &lt;code class=&quot;highlighter-rouge&quot;&gt;Sync&lt;/code&gt; means every modification to the data will be synchronized between the threads, it is what &lt;code class=&quot;highlighter-rouge&quot;&gt;Mutex&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;RwLock&lt;/code&gt; are for.&lt;/p&gt;
+
+&lt;p&gt;To use threadpool, simply replace &lt;code class=&quot;highlighter-rouge&quot;&gt;thread::spawn&lt;/code&gt; with 
+&lt;code class=&quot;highlighter-rouge&quot;&gt;rust
+let pool = ThreadPool::new(settings.threads);
+for stream in listener.incoming() {
+    let stream = stream.unwrap();
+    pool.execute(move || {
+        handle(&amp;amp;stream);
+    });
+}
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;shared-state&quot;&gt;Shared state&lt;/h3&gt;
+
+&lt;p&gt;Next we define a global state that allows a number of readers but only one writer can acquire the lock.&lt;/p&gt;
+
+&lt;p&gt;```rust
+struct SharedState {
+    pub connections: u16,
+    pub settings: Settings,
+    pub vec_store: HashMap&amp;lt;String, VecStore&amp;gt;,
+    pub history: History,
+}&lt;/p&gt;
+
+&lt;p&gt;impl SharedState {
+    pub fn new(settings: Settings) -&amp;gt; SharedState {
+        let mut hashmap = HashMap::new();
+        hashmap.insert(“default”.to_owned(), (Vec::new(),0) );
+        SharedState {
+            connections: 0,
+            settings,
+            vec_store: hashmap,
+            history: HashMap::new(),
+        }
+    }
+}&lt;/p&gt;
+
+&lt;p&gt;let global = Arc::new(RwLock::new(SharedState::new(settings.clone())));&lt;/p&gt;
+
+&lt;p&gt;for stream in listener.incoming() {
+    let stream = stream.unwrap();
+    let global_copy = global.clone();
+    pool.execute(move || {
+        on_connect(&amp;amp;global_copy);
+        handle_client(stream, &amp;amp;global_copy);
+        on_disconnect(&amp;amp;global_copy);
+    });
+}&lt;/p&gt;
+
+&lt;p&gt;fn on_connect(global: &amp;amp;LockedGlobal) {
+    {
+        let mut glb_wtr = global.write().unwrap();
+        glb_wtr.connections += 1;
+    }&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;info!(&quot;Client connected. Current: {}.&quot;, global.read().unwrap().connections); }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;fn on_disconnect(global: &amp;amp;LockedGlobal) {
+    {
+        let mut glb_wtr = global.write().unwrap();
+        glb_wtr.connections -= 1;
+    }&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;let rdr = global.read().unwrap();
+info!(&quot;Client connection disconnected. Current: {}.&quot;, rdr.connections); } ```
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;SharedState&lt;/code&gt; is a state that all children processes have access to. &lt;code class=&quot;highlighter-rouge&quot;&gt;connections&lt;/code&gt; is a count of how many clients are connected, &lt;code class=&quot;highlighter-rouge&quot;&gt;settings&lt;/code&gt; is a shared copy of the setting, &lt;code class=&quot;highlighter-rouge&quot;&gt;vec_store&lt;/code&gt; stores the Updates and &lt;code class=&quot;highlighter-rouge&quot;&gt;history&lt;/code&gt; records usage statistics.&lt;/p&gt;
+
+&lt;p&gt;As a demonstration of modifying a mutable shared state, here is duplication of the code to append to &lt;code class=&quot;highlighter-rouge&quot;&gt;history&lt;/code&gt;. Spawn another thread that executes every x seconds depends on the desired granularity.&lt;/p&gt;
+
+&lt;p&gt;```rust
+// Timer for recording history
+{
+    let global_copy_timer = global.clone();
+    let granularity = settings.hist_granularity.clone();
+    thread::spawn(move || {
+        let dur = time::Duration::from_secs(granularity);
+        loop {
+            {
+                let mut rwdr = global_copy_timer.write().unwrap();
+                let (total, sizes) = {
+                    let mut total = 0;
+                    let mut sizes: Vec&amp;lt;(String, u64)&amp;gt; = Vec::new();
+                    for (name, vec) in rwdr.vec_store.iter() {
+                        let size = vec.1;
+                        total += size;
+                        sizes.push((name.clone(), size));
+                    }
+                    sizes.push((“total”.to_owned(), total));
+                    (total, sizes)
+                };&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;            let current_t = time::SystemTime::now();
+            for &amp;amp;(ref name, size) in sizes.iter() {
+                if !rwdr.history.contains_key(name) {
+                    rwdr.history.insert(name.clone(), Vec::new());
+                }
+                rwdr.history.get_mut(name)
+                            .unwrap()
+                            .push((current_t, size));
+            }
+
+            info!(&quot;Current total count: {}&quot;, total);
+        }
+
+        thread::sleep(dur);
+    }
+}); } ```
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;This piece of code is pretty bizarre at a first glance due to the usage of scopes. Rust has a particular take on scoping: especially with Locks. Basically, obtaining a lock&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;let mut rwdr = global_copy_timer.write().unwrap();&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;returns a &lt;code class=&quot;highlighter-rouge&quot;&gt;RwLockWriteGuard&lt;/code&gt;. When it goes out scope(&lt;code class=&quot;highlighter-rouge&quot;&gt;Drop&lt;/code&gt;ped), the exclusive write access is released. This means we must have read lock and write lock in separate scopes, or else we’ll end up in a deadlock. In this case, since the write lock should be released when the thread is sleeping, it is dropped explicitly.&lt;/p&gt;
+
+&lt;h3 id=&quot;counting&quot;&gt;Counting&lt;/h3&gt;
+
+&lt;p&gt;The idea is to automatically flush to disk on every 10k inserts and clear the memory. This is done by recording two sizes: a nominal count: rows in memory plus rows in files; and an actual count of rows in memory. When the rows in memory exceeds a threshold, append to the file and clear memory. Then, when another client needs historical data, the server can load data from file without affecting the count.&lt;/p&gt;
+
+&lt;p&gt;Here is the implementation of auto flush:&lt;/p&gt;
+
+&lt;p&gt;```rust
+pub fn add(&amp;amp;mut self, new_vec : dtf::Update) {
+    let is_autoflush = {
+        let mut wtr = self.global.write().unwrap();
+        let is_autoflush = wtr.settings.autoflush;
+        let flush_interval = wtr.settings.flush_interval;
+        let folder = wtr.settings.dtf_folder.to_owned();
+        let vecs = wtr.vec_store.get_mut(&amp;amp;self.name).expect(“KEY IS NOT IN HASHMAP”);&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    vecs.0.push(new_vec);
+    vecs.1 += 1;
+
+    // Flush current store into disk after n items is inserted.
+    let size = vecs.0.len();
+    let is_autoflush = is_autoflush
+                    &amp;amp;&amp;amp; size != 0
+                    &amp;amp;&amp;amp; (size as u32) % flush_interval == 0;
+    if is_autoflush {
+        debug!(&quot;AUTOFLUSHING {}! Size: {} Last: {:?}&quot;, self.name, size, vecs.0.last().clone().unwrap());
+    }
+    is_autoflush
+};
+if is_autoflush {
+    self.flush();
+} } ```
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;self&lt;/code&gt; is borrowed in the first line so we have to manually create a scope to drop &lt;code class=&quot;highlighter-rouge&quot;&gt;self&lt;/code&gt;. This piece of code is a good (bad?) example of how Rust developers fight the compiler. This makes memory management a LOT cleaner and way more tractable.&lt;/p&gt;
+
+&lt;h3 id=&quot;command-parser&quot;&gt;Command Parser&lt;/h3&gt;
+
+&lt;p&gt;The command parser is still rudimentary as it is implemented using a series of match and if-else statements similar to Redis. However, it gets the job done. I will refactor this should demand arise.&lt;/p&gt;
+
+&lt;p&gt;Here is a list of commands:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;PING&lt;/li&gt;
+  &lt;li&gt;HELP&lt;/li&gt;
+  &lt;li&gt;INFO&lt;/li&gt;
+  &lt;li&gt;PERF&lt;/li&gt;
+  &lt;li&gt;COUNT&lt;/li&gt;
+  &lt;li&gt;COUNT ALL&lt;/li&gt;
+  &lt;li&gt;CREATE [db]&lt;/li&gt;
+  &lt;li&gt;USE [db]&lt;/li&gt;
+  &lt;li&gt;ADD [row]&lt;/li&gt;
+  &lt;li&gt;ADD [row] INTO [db]&lt;/li&gt;
+  &lt;li&gt;BULKADD&lt;/li&gt;
+  &lt;li&gt;BULKADD INTO [db]&lt;/li&gt;
+  &lt;li&gt;CLEAR&lt;/li&gt;
+  &lt;li&gt;CLEAR ALL&lt;/li&gt;
+  &lt;li&gt;FLUSH&lt;/li&gt;
+  &lt;li&gt;FLUSH ALL&lt;/li&gt;
+  &lt;li&gt;GET [count]&lt;/li&gt;
+  &lt;li&gt;GET [count] AS JSON&lt;/li&gt;
+  &lt;li&gt;GET ALL&lt;/li&gt;
+  &lt;li&gt;GET ALL AS JSON&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;If not specified &lt;code class=&quot;highlighter-rouge&quot;&gt;AS JSON&lt;/code&gt;, it uses the above serialization format.&lt;/p&gt;
+
+&lt;h2 id=&quot;tools&quot;&gt;Tools&lt;/h2&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;dtfcat&lt;/code&gt; is a simple reader for &lt;code class=&quot;highlighter-rouge&quot;&gt;.dtf&lt;/code&gt; files. It can read metadata, convert dtf to csv, rebin and split into smaller files by time buckets.&lt;/p&gt;
+
+&lt;h2 id=&quot;client-implementations&quot;&gt;Client implementations&lt;/h2&gt;
+
+&lt;p&gt;I had some trouble writing a client in JavaScript. Here is an implementation in TypeScript:&lt;/p&gt;
+
+&lt;p&gt;```typescript
+const net = require(‘net’);
+const THREADS = 20;
+const PORT = 9001;
+const HOST = ‘localhost’;&lt;/p&gt;
+
+&lt;p&gt;import { DBUpdate } from ‘../typings’;&lt;/p&gt;
+
+&lt;p&gt;interface TectonicResponse {
+    success: boolean;
+    data: string;
+}&lt;/p&gt;
+
+&lt;p&gt;type SocketMsgCb = (res: TectonicResponse) =&amp;gt; void;&lt;/p&gt;
+
+&lt;p&gt;export interface SocketQuery {
+    message: string;
+    cb: SocketMsgCb;
+    onError: (err: any) =&amp;gt; void;
+}&lt;/p&gt;
+
+&lt;p&gt;export default class TectonicDB {
+    port : number;
+    address : string;
+    socket: any;
+    initialized: boolean;
+    dead: boolean;
+    private onDisconnect: any;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;private socketSendQueue: SocketQuery[];
+private activeQuery?: SocketQuery;
+private readerBuffer: Buffer;
+
+// tslint:disable-next-line:no-empty
+constructor(port=PORT, address=HOST, onDisconnect=((queue: SocketQuery[]) =&amp;gt; { })) {
+    this.socket = new net.Socket();
+    this.activeQuery = null;
+    this.address = address || HOST;
+    this.port = port || PORT;
+    this.initialized = false;
+    this.dead = false;
+    this.onDisconnect = onDisconnect;
+    this.init();
+}
+
+async init() {
+    const client = this;
+
+    client.socketSendQueue = [];
+    client.readerBuffer = new Buffer([]);
+
+    client.socket.connect(client.port, client.address, () =&amp;gt; {
+        // console.log(`Tectonic client connected to: ${client.address}:${client.port}`);
+        this.initialized = true;
+
+        // process any queued queries
+        if(this.socketSendQueue.length &amp;gt; 0) {
+            // console.log(&#39;Sending queued message after DB connected...&#39;);
+            client.activeQuery = this.socketSendQueue.shift();
+            client.sendSocketMsg(this.activeQuery.message);
+        }
+    });
+
+    client.socket.on(&#39;close&#39;, () =&amp;gt; {
+        // console.log(&#39;Client closed&#39;);
+        client.dead = true;
+        client.onDisconnect(client.socketSendQueue);
+    });
+
+    client.socket.on(&#39;data&#39;, (data: any) =&amp;gt;
+        this.handleSocketData(data));
+
+    client.socket.on(&#39;error&#39;, (err: any) =&amp;gt; {
+        if(client.activeQuery) {
+            client.activeQuery.onError(err);
+        }
+    });
+}
+
+// skipped some functions
+
+async bulkadd_into(updates : DBUpdate[], db: string) {
+    const ret = [];
+    ret.push(&#39;BULKADD INTO &#39;+ db);
+    for (const { timestamp, seq, is_trade, is_bid, price, size} of updates) {
+        ret.push(`${timestamp}, ${seq}, ${is_trade ? &#39;t&#39; : &#39;f&#39;}, ${is_bid ? &#39;t&#39;:&#39;f&#39;}, ${price}, ${size};`);
+    }
+    ret.push(&#39;DDAKLUB&#39;);
+    this.cmd(ret);
+}
+
+async use(dbname: string) {
+    return this.cmd(`USE ${dbname}`);
+}
+
+handleSocketData(data: Buffer) {
+    const client = this;
+
+    const totalLength = client.readerBuffer.length + data.length;
+    client.readerBuffer = Buffer.concat([client.readerBuffer, data], totalLength);
+
+    // check if received a full response from stream, if no, store to buffer.
+    const firstResponse = client.readerBuffer.indexOf(0x0a); // chr(0x0a) == &#39;\n&#39;
+    if (firstResponse === -1) { // newline not found
+        return;
+    } else {
+        // data up to first newline
+        const data = client.readerBuffer.subarray(0, firstResponse+1);
+        // remove up to first newline
+        const rest = client.readerBuffer.subarray(firstResponse+1, client.readerBuffer.length);
+        client.readerBuffer = new Buffer(rest);
+
+        const success = data.subarray(0, 8)[0] === 1;
+        const len = new Uint32Array(data.subarray(8,9))[0];
+        const dataBody : string = String.fromCharCode.apply(null, data.subarray(9, 12+len));
+        const response : TectonicResponse = {success, data: dataBody};
+
+        if (client.activeQuery) {
+            // execute the stored callback with the result of the query, fulfilling the promise
+            client.activeQuery.cb(response);
+        }
+
+        // if there&#39;s something left in the queue to process, do it next
+        // otherwise set the current query to empty
+        if(client.socketSendQueue.length === 0) {
+            client.activeQuery = null;
+        } else {
+            // equivalent to `popFront()`
+            client.activeQuery = this.socketSendQueue.shift();
+            client.sendSocketMsg(client.activeQuery.message);
+        }
+    }
+}
+
+sendSocketMsg(msg: string) {
+    this.socket.write(msg+&#39;\n&#39;);
+}
+
+cmd(message: string | string[]) : Promise&amp;lt;TectonicResponse&amp;gt; {
+    const client = this;
+    let ret: Promise&amp;lt;TectonicResponse&amp;gt;;
+
+    if (Array.isArray(message)) {
+         ret = new Promise((resolve, reject) =&amp;gt; {
+            for (const m of message) {
+                client.socketSendQueue.push({
+                    message: m,
+                    cb: m === &#39;DDAKLUB&#39; ? resolve : () =&amp;gt; {},
+                    onError: reject,
+                });
+            }
+        });
+    } else if (typeof message === &#39;string&#39;) {
+        ret = new Promise((resolve, reject) =&amp;gt; {
+            const query: SocketQuery = {
+                message,
+                cb: resolve,
+                onError: reject,
+            };
+            client.socketSendQueue.push(query);
+        });
+    }
+
+    if (client.activeQuery == null &amp;amp;&amp;amp; this.initialized) {
+        client.activeQuery = this.socketSendQueue.shift();
+        client.sendSocketMsg(client.activeQuery.message);
+    }
+
+    return ret;
+}
+
+exit() {
+    this.socket.destroy();
+}
+
+getQueueLen(): number {
+    return this.socketSendQueue.length;
+}
+
+concatQueue(otherQueue: SocketQuery[]) {
+    this.socketSendQueue = this.socketSendQueue
+                            .concat(otherQueue);
+} } ```
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;It uses a FIFO queue to keep the db calls in order.&lt;/p&gt;
+
+&lt;p&gt;There is also a connection pool class for distributing loads. It was quite an undertaking.&lt;/p&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;You’ve made it this far, congrats! Here is a screenshot of tectonic running in semi-production:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://i.imgur.com/PttCo1v.png&quot; alt=&quot;TectonicDB in action&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;It inserts ~100k records every 30 seconds. or 3000 inserts per second. Hope this post is helpful to your own development.&lt;/p&gt;
+
+&lt;p&gt;I am pretty happy with the end result. The database compiles to a 4mb binary executable and can handle millions of inserts per second. The bottleneck was always the client.&lt;/p&gt;
+
+&lt;p&gt;Although Rust is not the fastest language to prototype with, the compiler improves the quality of life drastically.&lt;/p&gt;
+
+&lt;h1 id=&quot;improvement&quot;&gt;Improvement&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Python client.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Sharding&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Event dispatch. Similar to PostgreSQL’s event system.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Master-slave replication&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Fri, 27 Oct 2017 22:37:01 -0400</pubDate>
+        <link>http://rickyhan.com/jekyll/update/2017/10/27/how-to-handle-order-book-data.html</link>
+        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/10/27/how-to-handle-order-book-data.html</guid>
+        
+        
+        <category>jekyll</category>
+        
+        <category>update</category>
+        
+      </item>
+    
+      <item>
+        <title>Running Factorio on SONM</title>
+        <description>&lt;p&gt;In this short post, I will test out SONM.&lt;/p&gt;
+
+&lt;p&gt;SONM is a decentralized cloud provider. In this case, cloud is just someone else’s computer literally. I read on the website that this is called “fog computing.” In essense, anyone can become a “miner” to run application in exchange for SONM tokens. The technology is enabled by Docker, Yandex Cocaine and its own network discovery module(insomnia) and a blockchain interface. There are two binaries: hub for discovery(presumably one for a computing cluster) and miner to run on each host machine, both written in Go. I’d like to think of SONM as Kubernetes on a blockchain.&lt;/p&gt;
+
+&lt;p&gt;To test the project at its current stage, I will deploy a Factorio docker server and judge by the ease of use for both sysadmin and end user.&lt;/p&gt;
+
+&lt;h1 id=&quot;installing-sonm-toolbelt&quot;&gt;Installing SONM Toolbelt&lt;/h1&gt;
+
+&lt;p&gt;Following alpha release &lt;a href=&quot;https://sonm.io/alpha-release/&quot;&gt;the tutorial&lt;/a&gt; step by step, I downloaded the 0.2.1 release from &lt;a href=&quot;https://github.com/sonm-io/core/releases&quot;&gt;Github&lt;/a&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ./sonmhub
+INFO [10-12|19:26:40] Starting P2P networking 
+INFO [10-12|19:26:42] UDP listener up                          self=enode://b1ac08dd98423379ed75a4ea28ea5f4d96896743a8648d7c20880f79378a13ef910e8e2d98c50c01fa2442d7ffd5811a3ce25650f8592aa3ee2ae10970f5b7a4@207.244.97.166:30343
+INFO [10-12|19:26:42] Whisper started 
+2017-10-12T19:26:42.982Z        INFO    hub/server.go:288       listening for connections from Miners   {&quot;address&quot;: &quot;[::]:10002&quot;}
+2017-10-12T19:26:42.984Z        INFO    hub/server.go:297       listening for gRPC API connections      {&quot;address&quot;: &quot;[::]:10001&quot;}
+INFO [10-12|19:26:42] RLPx listener up                         self=enode://b1ac08dd98423379ed75a4ea28ea5f4d96896743a8648d7c20880f79378a13ef910e8e2d98c50c01fa2442d7ffd5811a3ce25650f8592aa3ee2ae10970f5b7a4@207.244.97.166:30343
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Then in a separate session,&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ sudo ./sonmminer 
+2017-10-12T19:27:09.595Z        DEBUG   miner/builder.go:75     building a miner        {&quot;config&quot;: {&quot;HubConfig&quot;:{&quot;Endpoint&quot;:&quot;127.0.0.1:10002&quot;,&quot;Resources&quot;:null},&quot;FirewallConfig&quot;:null,&quot;GPUConfig&quot;:null,&quot;SSHConfig&quot;:null,&quot;LoggingConfig&quot;:{&quot;Level&quot;:-1}}}
+2017-10-12T19:27:09.603Z        DEBUG   miner/builder.go:83     discovering public IP address ...
+2017-10-12T19:27:09.611Z        INFO    miner/builder.go:109    discovered public IP address    {&quot;addr&quot;: &quot;207.244.97.166&quot;, &quot;nat&quot;: &quot;Not behind a NAT&quot;}
+2017-10-12T19:27:09.611Z        INFO    miner/builder.go:140    collected Hardware info {&quot;hardware&quot;: {&quot;CPU&quot;:[{&quot;cpu&quot;:0,&quot;vendorId&quot;:&quot;GenuineIntel&quot;,&quot;family&quot;:&quot;6&quot;,&quot;model&quot;:&quot;2&quot;,&quot;stepping&quot;:3,&quot;physicalId&quot;:&quot;0&quot;,&quot;coreId&quot;:&quot;0&quot;,&quot;cores&quot;:1,&quot;modelName&quot;:&quot;QEMU Virtual CPU version 1.2.1&quot;,&quot;mhz&quot;:2400.082,&quot;cacheSize&quot;:4096,&quot;flags&quot;:[&quot;fpu&quot;,&quot;de&quot;,&quot;pse&quot;,&quot;tsc&quot;,&quot;msr&quot;,&quot;pae&quot;,&quot;mce&quot;,&quot;cx8&quot;,&quot;apic&quot;,&quot;sep&quot;,&quot;mtrr&quot;,&quot;pge&quot;,&quot;mca&quot;,&quot;cmov&quot;,&quot;pse36&quot;,&quot;clflush&quot;,&quot;mmx&quot;,&quot;fxsr&quot;,&quot;sse&quot;,&quot;sse2&quot;,&quot;syscall&quot;,&quot;nx&quot;,&quot;lm&quot;,&quot;rep_good&quot;,&quot;nopl&quot;,&quot;pni&quot;,&quot;vmx&quot;,&quot;cx16&quot;,&quot;popcnt&quot;,&quot;hypervisor&quot;,&quot;lahf_lm&quot;],&quot;microcode&quot;:&quot;0x1&quot;}],&quot;Memory&quot;:{&quot;total&quot;:1040777216,&quot;available&quot;:554799104,&quot;used&quot;:485978112,&quot;usedPercent&quot;:46.69376928405013,&quot;free&quot;:53800960,&quot;active&quot;:423022592,&quot;inactive&quot;:442867712,&quot;wired&quot;:0,&quot;buffers&quot;:51183616,&quot;cached&quot;:404344832,&quot;writeback&quot;:0,&quot;dirty&quot;:8192,&quot;writebacktmp&quot;:0,&quot;shared&quot;:10915840,&quot;slab&quot;:87986176,&quot;pagetables&quot;:5287936,&quot;swapcached&quot;:7966720},&quot;GPU&quot;:[]}}
+2017-10-12T19:27:09.614Z        INFO    miner/overseer.go:207   subscribe to Docker events      {&quot;since&quot;: &quot;1507836429&quot;}
+2017-10-12T19:27:09.622Z        DEBUG   miner/server.go:571     Using hub IP from config        {&quot;IP&quot;: &quot;127.0.0.1:10002&quot;}
+2017-10-12T19:27:09.632Z        INFO    miner/server.go:156     handling Handshake request      {&quot;req&quot;: &quot;&quot;}
+2017-10-12T19:27:09.639Z        INFO    miner/server.go:415     starting tasks status server
+2017-10-12T19:27:09.639Z        DEBUG   miner/server.go:368     handling tasks status request
+2017-10-12T19:27:09.639Z        INFO    miner/server.go:343     sending result  {&quot;info&quot;: {}, &quot;statuses&quot;: {}}
+2017-10-12T19:27:14.627Z        INFO    miner/server.go:512     yamux.Ping OK   {&quot;rtt&quot;: &quot;201.763µs&quot;}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;I assume that one hub supports a cluster of nearby hosts, similar to the master node on Kubernetes.&lt;/p&gt;
+
+&lt;p&gt;Finally, to run a docker container, create a yml file:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ cat &amp;gt; task.yml &amp;lt;&amp;lt;END
+&amp;gt; task:
+&amp;gt;   container:
+&amp;gt;     name: dtandersen/factorio:latest 
+&amp;gt;   resources:
+&amp;gt;       CPU: 1
+&amp;gt;       RAM: 10240kb
+&amp;gt;END
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Now we need to figure out the miner on which to run the task:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ./sonmcli --addr 127.0.0.1:10001 miner list
+Miner: 127.0.0.1:50928          Idle
+
+$ ./sonmcli --addr 127.0.0.1:10001 miner status 127.0.0.1:50928
+Miner: &quot;127.0.0.1:50928&quot; (003fe205-af29-4777-aa2c-a70fd50569ab):
+Hardware:
+    CPU0: 1 x QEMU Virtual CPU version 1.2.1
+    GPU: None
+    RAM:
+    Total: 992.6 MB
+    Used:  463.5 MB
+No active tasks
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Now we can deploy the task:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ./sonmcli --addr 127.0.0.1:10001 task start 127.0.0.1:50320 task.yml
+Starting &quot;dtandersen/factorio:latest&quot; on miner 127.0.0.1:50928...
+ID 94b59103-0c43-4c1e-bc87-9e06abf39ad5
+Endpoint [27015/tcp-&amp;gt;207.244.97.166:32772 34197/udp-&amp;gt;207.244.97.166:32769]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;This command returns when the task is deployed.&lt;/p&gt;
+
+&lt;p&gt;We inspect the miner again:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ./sonmcli --addr 127.0.0.1:10001 miner status 127.0.0.1:50928
+Miner: &quot;127.0.0.1:50928&quot; (003fe205-af29-4777-aa2c-a70fd50569ab):
+Hardware:
+    CPU0: 1 x QEMU Virtual CPU version 1.2.1
+    GPU: None
+    RAM:
+    Total: 992.6 MB
+    Used:  463.5 MB
+Tasks:
+    1) 94b59103-0c43-4c1e-bc87-9e06abf39ad5
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;The entire process took less than 3 minutes in wall clock time.&lt;/p&gt;
+
+&lt;p&gt;Of course, a system this complex will have lots of edge cases. I hope the SONM team have solutions to these pressing issues with fog computing:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;Security: user side and miner side&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Proof of execution&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Dishonest nodes&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;GPU tasks - SONM will support OpenCL but what about &lt;code class=&quot;highlighter-rouge&quot;&gt;nvidia-docker&lt;/code&gt; required to run TensorFlow?&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;SONM marketplace release is scheduled this winter along with a wallet prototype. Here is a diagram of how it works:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://camo.githubusercontent.com/0bb184c987ef6d88ddbd62fde21c596aa4795998/68747470733a2f2f7261772e6769746875622e636f6d2f736f6e6d2d696f2f646f63732f6d61737465722f617263682f73657175656e63652e7376673f73616e6974697a653d74727565&quot; alt=&quot;SONM marketpalce&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I will test these products as they are released.&lt;/p&gt;
+
+</description>
+        <pubDate>Thu, 12 Oct 2017 00:37:02 -0400</pubDate>
+        <link>http://rickyhan.com/jekyll/update/2017/10/12/running-factorio-headless-on-SONM.html</link>
+        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/10/12/running-factorio-headless-on-SONM.html</guid>
+        
+        
+        <category>jekyll</category>
+        
+        <category>update</category>
+        
+      </item>
+    
+      <item>
+        <title>Copping Supreme with Haskell</title>
+        <description>&lt;p&gt;Recently, a friend asked me to write a program that buys things off of a the shopping site of Supreme website as soon as anything is added. Supreme is a fashion brand that curbs supply to create artificial scarcity, resulting in higher consumer surplus and resell profit margin. So yes, the deadweight loss suffered in the primary market (webstore) is actually paying to incentivize the resellers and increase virality of the brand.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://d17ol771963kd3.cloudfront.net/122510/zo/LGlxG_4e95s.jpg&quot; alt=&quot;supreme brick&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;This Haskell script does the following:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;GET website url.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Diff page to determine any changes.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;If changes are found and within range specified in options, place an order for 100 items.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Wait x seconds&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Repeat&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;First, the types:&lt;/p&gt;
+
+&lt;p&gt;```haskell&lt;/p&gt;
+
+&lt;p&gt;type PageHash = String
+type PageURL = String
+type PageSource = BSL.ByteString&lt;/p&gt;
+
+&lt;p&gt;data Task = Task { pageSource :: PageSource
+                 , pageHash :: PageHash
+                 } deriving (Show, Eq)&lt;/p&gt;
+
+&lt;p&gt;data TagType = Open
+             | Close
+             | TextRegex
+             deriving (Show, Eq, Ord)&lt;/p&gt;
+
+&lt;p&gt;data Opt = BlackList TagType PageSource
+         | WhiteList TagType PageSource
+         deriving (Show, Eq, Ord)&lt;/p&gt;
+
+&lt;p&gt;type Opts = [Opt]&lt;/p&gt;
+
+&lt;p&gt;data URL = URL {
+  url :: PageURL,
+  opts :: Opts
+} deriving (Show, Eq, Ord)&lt;/p&gt;
+
+&lt;p&gt;type TaskMap = Map.Map URL Task
+```&lt;/p&gt;
+
+&lt;p&gt;The idea is to iterate through a list of &lt;code class=&quot;highlighter-rouge&quot;&gt;URL&lt;/code&gt;s, each with &lt;code class=&quot;highlighter-rouge&quot;&gt;pageSource&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;pageHash&lt;/code&gt;, and then put each URL-Task pair into a Map. In the main loop, compare the old Map to the new Map. If the difference is on &lt;code class=&quot;highlighter-rouge&quot;&gt;WhiteList&lt;/code&gt; and not on &lt;code class=&quot;highlighter-rouge&quot;&gt;BlackList&lt;/code&gt; or fits &lt;code class=&quot;highlighter-rouge&quot;&gt;TextRegex&lt;/code&gt;, then send a notification and place an order for 100 items. The last part may or may not be implemented.&lt;/p&gt;
+
+&lt;p&gt;The implementation is straightforward:&lt;/p&gt;
+
+&lt;p&gt;```haskell
+{-# LANGUAGE ViewPatterns #-}&lt;/p&gt;
+
+&lt;p&gt;module Main where&lt;/p&gt;
+
+&lt;p&gt;import Data.IORef (newIORef, readIORef, writeIORef, )
+import Control.Monad
+import Control.Concurrent (forkIO, threadDelay, )
+import qualified Data.Map.Strict as Map&lt;/p&gt;
+
+&lt;p&gt;data GlobalState = GlobalState { tasks :: IORef (Map.Map URL Task) }&lt;/p&gt;
+
+&lt;p&gt;initialize :: IO GlobalState
+initialize = do
+  titles &amp;lt;- getPages testURLs
+  tasksRef &amp;lt;- newIORef titles
+  return GlobalState { tasks = tasksRef }&lt;/p&gt;
+
+&lt;p&gt;startTimer :: GlobalState -&amp;gt; IO ()
+startTimer (tasks -&amp;gt; ref) = do
+  threadId &amp;lt;- forkIO loop
+  return ()
+  where
+    loop = do
+      threadDelay $ seconds 1
+      oldPages &amp;lt;- readIORef ref
+      newPages &amp;lt;- updatePages oldPages
+      atomicWriteIORef ref newPages
+      print $ getDiffs oldPages newPages
+      loop&lt;/p&gt;
+
+&lt;p&gt;seconds :: Num a =&amp;gt; a -&amp;gt; a
+seconds = (*) 1000000&lt;/p&gt;
+
+&lt;p&gt;updatePages :: TaskMap -&amp;gt; IO TaskMap
+updatePages = getPages . Map.keys&lt;/p&gt;
+
+&lt;p&gt;getPages :: [URL] -&amp;gt; IO TaskMap
+getPages urls = do
+  tasks &amp;lt;- mapM urlToTask urls
+  return $ Map.fromList $ zip urls tasks&lt;/p&gt;
+
+&lt;p&gt;testURLs :: [URL]
+testURLs = [
+             URL { url = “http://www.supremenewyork.com/shop/jackets/lnmg0t87f/oytwvb5k8”
+                 , opts = [
+                            BlackList Open “meta”
+                          ]
+                 }
+           ]&lt;/p&gt;
+
+&lt;p&gt;main :: IO ()
+main = do
+  st &amp;lt;- initialize
+  startTimer st
+```&lt;/p&gt;
+
+&lt;p&gt;Although functional programming discourages mutable states, sometimes mutable variables are needed. First, &lt;code class=&quot;highlighter-rouge&quot;&gt;getPages&lt;/code&gt; and initialize the task map, and store it in memory using &lt;code class=&quot;highlighter-rouge&quot;&gt;IORef&lt;/code&gt; which operates inside &lt;code class=&quot;highlighter-rouge&quot;&gt;IO&lt;/code&gt; monad to stay perfectly functional. Then in the future, update the reference to the new map.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ViewPatterns&lt;/code&gt; feature flag allows pattern matching on records fields for easy access of data inside (in this case &lt;code class=&quot;highlighter-rouge&quot;&gt;IORef&lt;/code&gt;).&lt;/p&gt;
+
+&lt;p&gt;Now there are 2 holes yet to be implemented.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;urlToTask&lt;/code&gt;&lt;/p&gt;
+
+    &lt;p&gt;Does what it says, &lt;code class=&quot;highlighter-rouge&quot;&gt;URL&lt;/code&gt; in, send requests and hash page source, &lt;code class=&quot;highlighter-rouge&quot;&gt;Task&lt;/code&gt; out.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;getDiffs&lt;/code&gt;&lt;/p&gt;
+
+    &lt;p&gt;Checks diffs.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;```
+import qualified Network.Wreq as Wreq
+import Control.Lens
+import Data.IORef
+import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy as BSL
+import qualified Crypto.Hash as H
+import qualified Data.Algorithm.Diff
+import qualified Data.Map.Strict as Map
+import qualified Text.HTML.TagSoup as TS&lt;/p&gt;
+
+&lt;p&gt;fetchPage :: String -&amp;gt; IO (Maybe PageSource)
+fetchPage url = do
+  r &amp;lt;- Wreq.get url
+  return $ r ^? Wreq.responseBody&lt;/p&gt;
+
+&lt;p&gt;hexSha3_512 :: BS.ByteString -&amp;gt; PageHash
+hexSha3_512 bs = show (H.hash bs :: H.Digest H.SHA1)&lt;/p&gt;
+
+&lt;p&gt;pageToHash :: BSL.ByteString -&amp;gt; PageHash
+pageToHash page = do
+  let strictBS = BSL.toStrict page
+  hexSha3_512 strictBS&lt;/p&gt;
+
+&lt;p&gt;urlToTask :: URL -&amp;gt; IO Task
+urlToTask URL {url=url, opts=opts}= do
+  pageSource &amp;lt;- fetchPage url
+  case pageSource of
+    Just source -&amp;gt; return Task { pageSource = source
+    	                       , pageHash = pageToHash source
+    	                       , pageOpts = opts
+    	                       }
+```&lt;/p&gt;
+
+&lt;p&gt;Nothing to see here. Wreq is the HTTP library whose results can be accessed using Lens. Hash &lt;code class=&quot;highlighter-rouge&quot;&gt;responseBody&lt;/code&gt; for later use and store source, hash, and opts in &lt;code class=&quot;highlighter-rouge&quot;&gt;Task&lt;/code&gt; record.&lt;/p&gt;
+
+&lt;p&gt;Here is the implementation for the &lt;code class=&quot;highlighter-rouge&quot;&gt;getDiff&lt;/code&gt; method(in a separate module).&lt;/p&gt;
+
+&lt;p&gt;```haskell
+{-# LANGUAGE OverloadedStrings #-}&lt;/p&gt;
+
+&lt;p&gt;module Diff where&lt;/p&gt;
+
+&lt;p&gt;import Lib
+import Control.Monad
+import qualified Data.Algorithm.Diff as D
+import qualified Data.Algorithm.DiffOutput as D
+import qualified Data.Map.Strict as Map
+import qualified Text.HTML.TagSoup as TS
+import Debug.Trace
+import Text.Regex.PCRE&lt;/p&gt;
+
+&lt;p&gt;getDiffs :: TaskMap -&amp;gt; TaskMap -&amp;gt; Map.Map URL (Maybe Bool)
+getDiffs olds news = Map.mapWithKey diff olds
+  where
+    diff key oldTask = do
+      newTask &amp;lt;- Map.lookup key news&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  let hash  = pageHash oldTask
+  let hash&#39; = pageHash newTask
+
+  let diffs = D.getDiff (parsedSource oldTask) (parsedSource newTask)
+  let options = opts key
+  let filteredDiffs = filtered options diffs
+
+  let changed = (hash /= hash&#39;) &amp;amp;&amp;amp; (not.null $ filteredDiffs)
+  if changed
+    then traceM $ ppDiff filteredDiffs
+    else traceM &quot;Nothing changed&quot;
+  return changed
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;parsedSource :: Task -&amp;gt; [TS.Tag PageSource]
+parsedSource = TS.parseTags . pageSource&lt;/p&gt;
+
+&lt;p&gt;ppDiff :: [D.Diff (TS.Tag PageSource)] -&amp;gt; String
+ppDiff = unlines . ppDiffPairs&lt;/p&gt;
+
+&lt;p&gt;ppDiffPairs :: [D.Diff (TS.Tag PageSource)] -&amp;gt; [String]
+ppDiffPairs diffs = zipWith
+      ((D.First first) (D.Second second) -&amp;gt;
+         “«««\n”
+      ++ show first
+      ++ “\n======\n”
+      ++ show second
+      ++ “\n»»»\n”
+      )
+    (onlyFirsts diffs) (onlySeconds diffs)&lt;/p&gt;
+
+&lt;p&gt;onlySeconds :: [D.Diff t] -&amp;gt; [D.Diff t]
+onlySeconds = filter (\diff -&amp;gt;
+  case diff of
+    D.Second _ -&amp;gt; True
+    _         -&amp;gt; False)&lt;/p&gt;
+
+&lt;p&gt;onlyFirsts :: [D.Diff t] -&amp;gt; [D.Diff t]
+onlyFirsts = filter (\diff -&amp;gt;
+  case diff of
+    D.First _ -&amp;gt; True
+    _         -&amp;gt; False)&lt;/p&gt;
+
+&lt;p&gt;filtered :: Opts -&amp;gt; [D.Diff (TS.Tag PageSource)] -&amp;gt; [D.Diff (TS.Tag PageSource)]
+filtered options diffs = filter(\diff -&amp;gt; all (\option -&amp;gt; ok option diff) options ) diffs
+  where ok option diff = case diff of D.Both _ _ -&amp;gt; False
+                                      _          -&amp;gt; case option of BlackList Open name -&amp;gt; not $ TS.isTagOpenName name d
+                                                                   BlackList Close name -&amp;gt; not $ TS.isTagCloseName name d
+                                                                   BlackList TextRegex regex -&amp;gt; TS.isTagText d &amp;amp;&amp;amp; (TS.fromTagText d =~ regex)
+                                                                   WhiteList Open name -&amp;gt; name == “*” || TS.isTagOpenName name d
+                                                                   _ -&amp;gt; undefined
+                                                                   where d = fromDiff diff&lt;/p&gt;
+
+&lt;p&gt;fromDiff :: D.Diff (TS.Tag PageSource) -&amp;gt; TS.Tag PageSource
+fromDiff (D.First a) = a
+fromDiff (D.Second a) = a
+```&lt;/p&gt;
+
+&lt;p&gt;Most of the logic is in &lt;code class=&quot;highlighter-rouge&quot;&gt;getDiffs&lt;/code&gt;: first compare the new hash with the old hash. If &lt;code class=&quot;highlighter-rouge&quot;&gt;pageSource&lt;/code&gt; changed, then find the difference of the pages at the level of HTML tags. To do this, &lt;code class=&quot;highlighter-rouge&quot;&gt;TagSoup&lt;/code&gt; is used to parse &lt;code class=&quot;highlighter-rouge&quot;&gt;pageSource&lt;/code&gt; into a list of &lt;code class=&quot;highlighter-rouge&quot;&gt;Tag&lt;/code&gt;s. Since &lt;code class=&quot;highlighter-rouge&quot;&gt;Tag&lt;/code&gt; implements &lt;code class=&quot;highlighter-rouge&quot;&gt;Eq&lt;/code&gt; typeclass, it is supported by the diff algorithm. This is where the typeclass system really becomes useful.&lt;/p&gt;
+
+&lt;p&gt;Now that the diffs are calculated, just need to filter out the ones that we said we wanted in options. Since options are implemented on the type level as opposed to data level, pattern matching against types is necessary. &lt;code class=&quot;highlighter-rouge&quot;&gt;Options&lt;/code&gt; is a product type which is pleasant to pattern match against.&lt;/p&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;Using Haskell, we can monitor pages in a modular and type safe manner.&lt;/p&gt;
+
+&lt;p&gt;After reading about Supreme drops online, I realized the website only changes on Thursdays so I won’t know what urls to watch.&lt;/p&gt;
+
+&lt;p&gt;Later, I lost interest in fashion and this project is abandoned.&lt;/p&gt;
+</description>
+        <pubDate>Wed, 27 Sep 2017 00:37:02 -0400</pubDate>
+        <link>http://rickyhan.com/jekyll/update/2017/09/27/copping-supreme-with-haskell.html</link>
+        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/09/27/copping-supreme-with-haskell.html</guid>
+        
+        
+        <category>jekyll</category>
+        
+        <category>update</category>
+        
+      </item>
+    
+      <item>
         <title>Gradient Trader Part 2: Visualizing Bitcoin Order Book</title>
-        <description>&lt;p&gt;In this short post I will demonstrate how to use the order book. I am giving out  visualization algorithms for free.&lt;/p&gt;
+        <description>&lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+
+&lt;p&gt;&lt;strong&gt;Update: Nov. 17 2017:&lt;/strong&gt; All algorithms on this page have been &lt;a href=&quot;https://github.com/rickyhan/tectonicdb/tree/master/src/lib&quot;&gt;ported to Rust&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;In this short post I will demonstrate how to use the order book. I am giving out  visualization algorithms for free.&lt;/p&gt;
 
 &lt;p&gt;Visualization should lead to truth and understanding. There are different ways of visualizing the order book. We will start with the simplest one.&lt;/p&gt;
 
@@ -49,8 +1485,7 @@ import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 import copy&lt;/p&gt;
 
-&lt;h1 id=&quot;connstring--hostlocalhost-dbnamebittrex-userrhan-passwordredacted&quot;&gt;conn_string = “host=’localhost’ dbname=’bittrex’ user=’rhan’ password=’[REDACTED]’”&lt;/h1&gt;
-&lt;p&gt;conn_string = “host=’localhost’ dbname=’bittrex’ user=’postgres’ password=’long time people dem used to say’”
+&lt;p&gt;conn_string = “host=’localhost’ dbname=’bittrex’ user=’rhan’ password=’[REDACTED]’”
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
 ```&lt;/p&gt;
@@ -181,7 +1616,7 @@ plt.show()
   &lt;li&gt;market order&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;This is done by comparing the previous liquidity $s_{t-1}$ to the new liquidity $s_{t}$ at a given price level $p$.&lt;/p&gt;
+&lt;p&gt;This is done by comparing the previous liquidity &lt;script type=&quot;math/tex&quot;&gt;s_{t-1}&lt;/script&gt; to the new liquidity &lt;script type=&quot;math/tex&quot;&gt;s_{t}&lt;/script&gt; at a given price level &lt;script type=&quot;math/tex&quot;&gt;p&lt;/script&gt;.&lt;/p&gt;
 
 &lt;p&gt;```python
 cols = [“ts”, “seq”, “size”, “price”, “is_bid”, “is_trade”]&lt;/p&gt;
@@ -303,22 +1738,13 @@ updates = to_updates(events) # expensive
 &lt;/code&gt;&lt;/p&gt;
 
 &lt;p&gt;```python
-def plot_price_levels(updates, zorder=0, max_threshold=100, min_threshold=0.5):
-    max_size = 0
-    list_of_updates = []
-    for price, value in updates.items():
-        for time, size in value.items():
-            list_of_updates.append((price,time,size))&lt;/p&gt;
+def plot_price_levels(updates, zorder=0, max_threshold=100, min_threshold=0.5):  &lt;br /&gt;
+    ys = []
+    xmins = []
+    xmaxs = []
+    colors = []&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;        if size &amp;gt; max_size:
-            max_size = size
-
-ys = []
-xmins = []
-xmaxs = []
-colors = []
-
-for price, vdict in updates.items():
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;for price, vdict in updates.items():
     vtuples = vdict.items()
     vtuples = sorted(vtuples, key=lambda tup: tup[0])
     for (t1, s1), (t2, s2) in zip(vtuples, vtuples[1:]): # bigram
@@ -371,9 +1797,8 @@ def get_ob():
                 for price, size in sidedicts.items():
                     if size == 0:
                         del sidedicts[price]
-            orderbook[e.ts] = copy.deepcopy(most_recent_orderbook)
-        orderbook[e.ts][&quot;bids&quot; if e.is_bid else &quot;asks&quot;][e.price] = e[&quot;size&quot;]
-        most_recent_orderbook[&quot;bids&quot; if e.is_bid else &quot;asks&quot;][e.price] = e[&quot;size&quot;]
+            most_recent_orderbook[&quot;bids&quot; if e.is_bid else &quot;asks&quot;][e.price] = e[&quot;size&quot;]
+            orderbook[e.ts] = copy.deepcopy(most_recent_orderbook)        
     return orderbook
 &lt;/code&gt;&lt;/p&gt;
 
@@ -566,9 +1991,9 @@ conn.close()
 
 &lt;p&gt;In the future I plan on porting such visualization to &lt;a href=&quot;https://github.com/rrag/react-stockcharts&quot;&gt;react-stockcharts&lt;/a&gt; so I can interactively explore data. The algorithms are already here, what is left to be done is changing matplotlib calls to d3. If you would like to collaborate with me on this, please email me.&lt;/p&gt;
 </description>
-        <pubDate>Thu, 14 Sep 2017 00:37:02 -0400</pubDate>
-        <link>http://rickyhan.com/jekyll/update/2017/09/14/visualizing-order-book.html</link>
-        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/09/14/visualizing-order-book.html</guid>
+        <pubDate>Sun, 24 Sep 2017 00:37:02 -0400</pubDate>
+        <link>http://rickyhan.com/jekyll/update/2017/09/24/visualizing-order-book.html</link>
+        <guid isPermaLink="true">http://rickyhan.com/jekyll/update/2017/09/24/visualizing-order-book.html</guid>
         
         
         <category>jekyll</category>

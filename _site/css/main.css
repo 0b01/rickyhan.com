@@ -318,9 +318,11 @@ pre {
 /**
  * Syntax highlighting styles
  */
-.highlight {
-  background: #fff;
+pre.highlight {
   border: 1px solid #aaa5ff; }
+
+.highlight {
+  background: #fff; }
   .highlighter-rouge .highlight {
     background: #eef; }
   .highlight .c {
