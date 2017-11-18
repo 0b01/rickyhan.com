@@ -5,9 +5,9 @@ date:   2017-11-16 00:00:00 -0400
 categories: jekyll update
 ---
 
-Preparing dataset for machine learning is a CPU heavy task. To optimize for GPU utilization during training, it is imperative to preprocess the data. What is the proper way to approach this? This depends on how much data you have.
+Preparing dataset for machine learning is a CPU heavy task. To optimize for GPU utilization during training, it is imperative to process the data before training. What is the proper way to approach this? Depends on how much data you have.
 
-I recently encountered this problem while training a new model. I had 60GB [compressed](http://rickyhan.com/jekyll/update/2017/10/27/how-to-handle-order-book-data.html) order book data with which I need to generate a 680GB dataset.
+Recently, I trained a new model. I had 60GB [compressed](http://rickyhan.com/jekyll/update/2017/10/27/how-to-handle-order-book-data.html) order book data with which I needed to generate a 680GB training set.
 
 This post is about the awkward situation where the dataset is not big enough to warrant Spark but would take too long to run on your computer. A top-end deep learning box only has a maximum of 32 cores while AWS has 128 cores on demand for $13.388/hr. A simple back-of-the-envelop calculation shows that if a task takes 24 hours on an Intel i7 with 8 threads, or `24 * 8 (hour x thread)` then it would only take ~1 hour to run on a 128 core instance for the price of a burrito. Another pro is the huge memory(1952GB) that should fit most datasets.
 
