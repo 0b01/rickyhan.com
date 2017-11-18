@@ -33,7 +33,7 @@ def _bytes_feature(value):
 batch_size = 256
 time_steps = 256
 max_scale = max(SCALES)
-min_padding = max_scale * time_steps  # of minutes must be padded in front and back
+min_padding = max_scale * time_steps
 maximum_sequential_epoch_sequence = range(get_min_epoch(), get_max_epoch(), 60)
 ok_epochs = set(maximum_sequential_epoch_sequence[min_padding:-min_padding])
 # ok_epochs = set(list(ok_epochs)[:len(ok_epochs)/8])
@@ -129,7 +129,8 @@ use record::*;
 static MAGIC_VALUE : &[u8] = &[0x93, 0x4E, 0x55, 0x4D, 0x50, 0x59];
 
 fn get_header() -> String {
-    {%raw%}format!("{{'descr': [('data', '>f4')],'fortran_order': False,'shape': ({},{},{})}}",
+    {%raw%}format!("
+      {{'descr': [('data', '>f4')],'fortran_order': False,'shape': ({},{},{})}}",
         BATCH_SIZE, TIME_STEP, INPUT_DIM){%endraw%}
 }
 
@@ -183,7 +184,8 @@ fn main() {
     for batch in 0..BATCH_SIZE {
         for step in 0..TIME_STEP {
             for dim in 0..INPUT_DIM {
-                record[batch][step][dim] = (100 * batch + 10 * step + 1* dim) as f32;
+                record[batch][step][dim] =
+                  (100 * batch + 10 * step + 1* dim) as f32;
             }
         }
     }
