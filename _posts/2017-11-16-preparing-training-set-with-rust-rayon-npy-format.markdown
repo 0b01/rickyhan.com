@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Gradient Trader Part 4: Preparing Training Set with Rust, Rayon and npy binary format"
-date:   2017-11-17 00:00:00 -0400
+date:   2017-11-16 00:00:00 -0400
 categories: jekyll update
 ---
 
