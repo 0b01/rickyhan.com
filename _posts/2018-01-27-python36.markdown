@@ -1,13 +1,13 @@
 ---
 layout: post
-title:  "Trading with Asynchronous Generator"
+title:  "How to use async generator in python3.6 to process streaming data"
 date:   2018-01-27 00:00:00 -0400
 categories: jekyll update
 ---
 
 Like many, my first programming language is Python 2.7. This year, I decided to make the switch `alias python=python3.6`. Other than a 10% increase in processing speed, it has some perks not previously possible in 2.7.
 
-In this post, I will publish a minimal, complete, and verifiable example of a trading script implemented in Python 3.6.
+In this post, I will publish a minimal, complete, and verifiable example of a script implemented in Python 3.6.
 
 ## Async Generators: what are those?
 
