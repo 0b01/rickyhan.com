@@ -1,0 +1,96 @@
+---
+layout: post
+title:  "Trading with Asynchronous Generator"
+date:   2018-01-27 00:00:00 -0400
+categories: jekyll update
+---
+
+Like many, my first programming language is Python 2.7. This year, I decided to make the switch `alias python=python3.6`. Other than a 10% increase in processing speed, it has some perks not previously possible in 2.7.
+
+In this post, I will publish a minimum viable example of a trading bot implemented in Python 3.6 which added support for asynchronous generator which is great for stream processing.
+
+## Async Generators: what are those?
+
+Suppose we have a stream that generates a bunch of values required by other parts of the program. With `asyncio`, the stream processing loop is run concurrently so it doesn't block.
+
+An example program does the following:
+1. Receives a batch of data from stream
+2. Do something with the batch of data every x seconds
+
+We start with receiving data. This is an async generator:
+
+```python
+import asyncio
+from tectonic import TectonicDB
+import json
+async def subscribe(name):
+    db = TectonicDB(host="localhost", port=9001)
+    _success, _text = await db.subscribe(name)
+    while 1:
+        _, text = await db.poll()
+        if b"NONE" == text:
+            await asyncio.sleep(0.001)
+        else:
+            yield json.loads(text)
+```
+
+As we can see, `subscribe` connects to a TectonicDB instance and subscribes to a data store then polls forever. This coroutine yields new order book updates as they come in.
+
+Next, we define a structure to store this data.
+
+```python
+class TickBatcher(object):
+    def __init__(self, db_name):
+        self.one_batch = []
+        self.db_name = db_name
+
+    async def sub(self):
+        async for item in subscribe(self.db_name):
+            self.one_batch.append(item)
+```
+
+Now since the generator is async, the iteration must also async. So as new data is generated, we append to a list and store as a class variable.
+
+Finally, we define a timer coroutine.
+
+```python
+def timer(secs=1):
+    """async timer decorator"""
+    def _timer(f):
+        async def wrapper(*args, **kwargs):
+            while 1:
+                await asyncio.sleep(s)
+                await f()
+        return wrapper
+    return _timer
+
+class TickBatcher(object):
+    ...
+    @timer(secs=10)
+    async def run(self):
+        # do work here
+        print(len(self.one_batch))
+        self.one_batch = []
+```
+
+We use a decorator to hide the sleeping logic.
+
+Finally, to run the program create separate tasks and everything works nicely together.
+
+```python
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+
+    proc = TickBatcher("bnc_xrp_btc")
+    loop.create_task(proc.sub())
+    loop.create_task(proc.run())
+
+    loop.run_forever()
+    loop.close()
+```
+
+## Conclusion
+
+In this short post we use Python3.6 async generators to implement a simple script to monitor market or place simple orders.
+
+# [If you find this article helpful, you should sign up to get updates.](https://tinyletter.com/rickyhan)
