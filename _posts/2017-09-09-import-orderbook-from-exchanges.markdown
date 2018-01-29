@@ -5,6 +5,8 @@ date:   2017-09-09 11:05:01 -0400
 categories: jekyll update
 ---
 
+########### Disclaimer: I have moved the entire market data collection stack to Rust. Everything in this post still works.
+
 I am really excited about my new project. It is a fairly sophisticated crypto trading bot built with TensorFlow. In the upcoming series of posts, I will share some details on how it was built. Unfortunately, since the bot is profitable, it will be operating in stealth mode and won't be open-sourced. However, the non-mission-critical parts will be. For example, I am currently porting visualization charts and interactive graphs into a separate publishable module. Expect pretty graphics soon.
 
 The intention is to use this blog as a real-time lab report and tutorial for new quant enthusiasts. Financial demos are few and far between so I hope this will provide some value. This is the first post in the installment. In this post we show how to import limit order book updates into your own database for later use. A wise man once said, 99% of programming is moving a chunk of data from one place to another, transforming it in the process. Order book update is no exception. Here, we listen to every limit order update emitted from the exchange's websocket and store it in a PostgreSQL database. Reconstructing an LOB is covered in the next post.
