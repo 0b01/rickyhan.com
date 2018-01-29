@@ -11,13 +11,13 @@ In this post, I will publish a minimal, complete, and verifiable example of a tr
 
 ## Async Generators: what are those?
 
-Suppose we have a stream that generates a bunch of values required by other parts of the program. With `asyncio`, the stream processing loop is run concurrently so it doesn't block.
+Suppose we have a stream that generates a bunch of values required by other parts of the program. With `asyncio`, the stream processing loop is run concurrently so it doesn't block. It is added in 3.6.
 
-An example program does the following:
-1. Receives a batch of data from stream
-2. Do something with the batch of data every x seconds
+This example program does the following:
+1. Receive a batch of data from stream continuously
+2. Every x seconds, do something with the batch, repeat
 
-We start with receiving data. This is an async generator:
+Here is the async generator:
 
 ```python
 import asyncio
