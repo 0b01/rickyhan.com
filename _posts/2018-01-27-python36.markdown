@@ -11,7 +11,7 @@ In this post, I will publish a minimal, complete, and verifiable example of a tr
 
 ## Async Generators: what are those?
 
-Suppose we have a stream that generates a bunch of values required by other parts of the program. With `asyncio`, the stream processing loop is run concurrently so it doesn't block. It is added in 3.6.
+Suppose we have a stream that generates a bunch of values required by other parts of the program. With `asyncio`, the stream processing loop is run concurrently so it doesn't block. It is introduced in 3.6.
 
 This example program does the following:
 1. Receive a batch of data from stream continuously
@@ -49,9 +49,9 @@ class TickBatcher(object):
             self.one_batch.append(item)
 ```
 
-Now since the generator is async, the iteration must also async. So as new data is generated, we append to a list and store as a class variable.
+Now since the generator is async, the iteration must also be async as in only iterate when new data comes in.
 
-Finally, we define a timer coroutine.
+We write the main logic in a separate coroutine.
 
 ```python
 def timer(secs=1):
@@ -73,9 +73,9 @@ class TickBatcher(object):
         self.one_batch = []
 ```
 
-We use a decorator to hide the sleeping logic.
+We use a decorator to hide the `sleep`ing logic.
 
-Finally, to run the program create separate tasks and everything works nicely together.
+Finally, in order to run the program, we need to create the tasks separately.
 
 ```python
 if __name__ == '__main__':
@@ -91,6 +91,6 @@ if __name__ == '__main__':
 
 ## Conclusion
 
-In this short post we use Python3.6 async generators to implement a simple script to monitor market or place simple orders.
+In this short post we used Python3.6 async generator to implement a simple script to monitor market or place simple orders.
 
 # [If you find this article helpful, you should sign up to get updates.](https://tinyletter.com/rickyhan)
