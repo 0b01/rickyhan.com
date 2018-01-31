@@ -1,0 +1,475 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>homework202</title><meta name="generator" content="MATLAB 9.3"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2018-01-31"><meta name="DC.source" content="homework202.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Homework 1</a></li><li><a href="#2">Part I: the smiley face.</a></li><li><a href="#3">Part II: the cube.</a></li><li><a href="#4">Part III: fun with projective space. No limit on group collaboration size.</a></li><li><a href="#5">now we open an image and sample a bunch of points from that image</a></li></ul></div><h2 id="1">Homework 1</h2><p>Document what you're doing. In particular, tell me who you worked with and what resources you used for each problem.</p><pre class="codeinput"><span class="comment">% first we define a bunch of useful transformations</span>
+syms <span class="string">T(a,b)</span> <span class="string">R(t)</span>
+T(a,b) = [1 0 a;0 1 b;0 0 1];
+R(t) = [cos(t) -sin(t) 0;sin(t) cos(t) 0;0 0 1];
+</pre><h2 id="2">Part I: the smiley face.</h2><p>Plot the smiley face in mutiple festive colors with "hold on". Show me the four problems on the first group work.</p><pre class="codeinput"><span class="comment">% S is the points in the face.</span>
+S = transpose([
+    -1     2     1
+     1     2     1
+    -3     0     1
+     3     0     1
+    -1    -3     1
+     1    -3     1
+    -2    -2     1
+     2    -2     1
+     0    -3.5   1
+    -2.5  -1     1
+     2.5  -1     1
+]);
+
+<span class="comment">% first we plot the eyes red</span>
+figure
+scatter(S(1,1:3),S(2,1:3), 250, <span class="string">'r'</span>,<span class="string">'filled'</span>)
+<span class="comment">% hold on and plot the mouth according the doc</span>
+<span class="comment">% doc scatter</span>
+hold <span class="string">on</span>
+c = linspace(1,10, length(S(1, :))-2);
+scatter(S(1,3:end),S(2,3:end), 250, c,<span class="string">'filled'</span>)
+axis <span class="string">square</span>;axis([-5 5 -5 5]);
+hold <span class="string">off</span>
+</pre><img vspace="5" hspace="5" src="homework202_01.png" alt=""> <h2 id="3">Part II: the cube.</h2><p>Plot the unit cube C. first, Justin's pictures on pages 65 and 66.</p><pre class="codeinput">clear
+clearvars
+I65 = imread(<span class="string">'~/Desktop/page65.png'</span>);
+I66 = imread(<span class="string">'~/Desktop/page66.png'</span>);
+figure
+imshow(I65)
+
+syms <span class="string">T(a,b,c)</span> <span class="string">RX(t)</span> <span class="string">RY(t)</span> <span class="string">RZ(t)</span> <span class="string">P(d)</span>
+T(a,b,c)=[1 0 0 a;0 1 0 b;0 0 1 c;0 0 0 1];
+RX(t)=[1 0 0 0 ; 0 cos(t) -sin(t) 0;0 sin(t) cos(t) 0 ; 0 0 0 1];
+RY(t)=[cos(t) 0 sin(t) 0;0 1 0 0;-sin(t) 0 cos(t) 0 ;0 0 0 1];
+RZ(t)=[cos(t) -sin(t) 0 0;sin(t) cos(t) 0 0 ; 0 0 1 0; 0 0 0 1];
+P(d)=[1 0 0 0;0 1 0 0;0 0 0 0;0 0 -1/d 1];
+
+Ax = [0:.1:1; zeros(1,11); zeros(1,11); ones(1,11)];
+
+<span class="comment">% Ax</span>
+Ay = RZ(pi/2) * Ax;
+Az = RY(-pi/2) * Ax;
+
+<span class="comment">% Cool okay. Now boost Ax, Ay, and Az to get the rest of the edges of the</span>
+<span class="comment">% cube. Then store the whole cube as C = [Ax Ay Az ...].</span>
+
+Ax0 = Ax;
+Ay0 = Ay;
+Az0 = Az;
+Ax1 = T(0, 1, 0) * Ax;
+Ax2 = T(0, 0, 1) * Ax;
+Ax3 = T(0, 1, 1) * Ax;
+Ay1 = T(1, 0, 0) * Ay;
+Ay2 = T(1, 0, 1) * Ay;
+Ay3 = T(0, 0, 1) * Ay;
+Az1 = T(1, 0, 0) * Az;
+Az2 = T(1, 1, 0) * Az;
+Az3 = T(0, 1, 0) * Az;
+
+C = [Ax0 Ax1 Ax2 Ax3 Ay0 Ay1 Ay2 Ay3 Az0 Az1 Az2 Az3];
+<span class="comment">%</span>
+<span class="comment">% Nice. This cube has the wrong dimensions though -- it should be scaled</span>
+<span class="comment">% up and shifted to get it to Justin's cube. Do that and call it CJ.</span>
+
+<span class="comment">% JC = transpose([-1 -1 1 1; 3 -1 1 1; 3 3 1 1; -1 3 1 1; -1 -1 3 1; 3 -1 3 1; 3 3 3 1; -1 3 3 1]);</span>
+<span class="comment">% figure</span>
+<span class="comment">% scatter3(JC(1, :), JC(2, :), JC(3, :), 'filled')</span>
+
+
+CJ = [ 4 0 0 0;
+       0 4 0 0;
+       0 0 2 0;
+       0 0 0 1;
+     ] * C;
+CJ = T(-1, -1, 1) * CJ;
+
+<span class="comment">% Now prove that your cube is Justin's cube by creating the pictures on</span>
+<span class="comment">% pages 65 and 66.</span>
+CJ1 = P(10) * CJ;
+
+<span class="keyword">for</span> i=1:length(CJ1);
+CJ1(:,i)=CJ1(:,i) / CJ1(4,i);
+<span class="keyword">end</span>;
+
+figure
+scatter(CJ1(1, :), CJ1(2, :),<span class="string">'filled'</span>)
+axis([-4 8 -4 8]);
+
+
+<span class="comment">% page 66</span>
+figure
+imshow(I66)
+
+CJ2 = P(10) * T(0, 0, -1) * RZ(pi/12) * RY(pi/3) * RX(pi/6) * CJ;
+<span class="keyword">for</span> i=1:length(CJ2);
+CJ2(:,i)=CJ2(:,i) / CJ2(4,i);
+<span class="keyword">end</span>;
+
+figure
+scatter(CJ2(1, :), CJ2(2, :),<span class="string">'filled'</span>)
+axis([-2 6 -3 4]);
+</pre><img vspace="5" hspace="5" src="homework202_02.png" alt=""> <img vspace="5" hspace="5" src="homework202_03.png" alt=""> <img vspace="5" hspace="5" src="homework202_04.png" alt=""> <img vspace="5" hspace="5" src="homework202_05.png" alt=""> <h2 id="4">Part III: fun with projective space. No limit on group collaboration size.</h2><pre class="codeinput"><span class="comment">%</span>
+<span class="comment">% Starting with the unit cube C, add a few more points to make it clear which way is up.</span>
+<span class="comment">% Call your decorated cube D.</span>
+<span class="comment">% Examples of how to do this: you could put an arrow inside the cube, or</span>
+<span class="comment">% add pips on the faces to create a six-sided die. Show me what D looks</span>
+<span class="comment">% like with scatter3.</span>
+
+clearvars
+
+syms <span class="string">T(a,b,c)</span> <span class="string">RX(t)</span> <span class="string">RY(t)</span> <span class="string">RZ(t)</span> <span class="string">P(d)</span>
+T(a,b,c)=[1 0 0 a;0 1 0 b;0 0 1 c;0 0 0 1];
+RX(t)=[1 0 0 0 ; 0 cos(t) -sin(t) 0;0 sin(t) cos(t) 0 ; 0 0 0 1];
+RY(t)=[cos(t) 0 sin(t) 0;0 1 0 0;-sin(t) 0 cos(t) 0 ;0 0 0 1];
+RZ(t)=[cos(t) -sin(t) 0 0;sin(t) cos(t) 0 0 ; 0 0 1 0; 0 0 0 1];
+P(d)=[1 0 0 0;0 1 0 0;0 0 0 0;0 0 -1/d 1];
+
+Ax = [0:.1:1; zeros(1,11); zeros(1,11); ones(1,11)];
+Ay = RZ(pi/2) * Ax;
+Az = RY(-pi/2) * Ax;
+
+<span class="comment">% Cool okay. Now boost Ax, Ay, and Az to get the rest of the edges of the</span>
+<span class="comment">% cube. Then store the whole cube as C = [Ax Ay Az ...].</span>
+
+syms <span class="string">T(a,b,c)</span> <span class="string">RX(t)</span> <span class="string">RY(t)</span> <span class="string">RZ(t)</span> <span class="string">P(d)</span>
+T(a,b,c)=[1 0 0 a;0 1 0 b;0 0 1 c;0 0 0 1];
+RX(t)=[1 0 0 0 ; 0 cos(t) -sin(t) 0;0 sin(t) cos(t) 0 ; 0 0 0 1];
+RY(t)=[cos(t) 0 sin(t) 0;0 1 0 0;-sin(t) 0 cos(t) 0 ;0 0 0 1];
+RZ(t)=[cos(t) -sin(t) 0 0;sin(t) cos(t) 0 0 ; 0 0 1 0; 0 0 0 1];
+P(d)=[1 0 0 0;0 1 0 0;0 0 0 0;0 0 -1/d 1];
+</pre><h2 id="5">now we open an image and sample a bunch of points from that image</h2><p>convert index to points</p><pre class="codeinput">[A, maps, alpha] = imread(<span class="string">'~/Desktop/arrow.png'</span>);
+ARROW = [0; 0; 0; 0];
+<span class="keyword">for</span> i=1:10:length(alpha);
+    <span class="keyword">for</span> j=1:10:length(alpha(i, :));
+        <span class="keyword">if</span> alpha(i,j) &gt; 0;
+            ARROW = [ARROW [i; j; 0; 1]]; <span class="comment">% TODO: perf</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>;
+
+Ax = [0:1:200; zeros(1,201); zeros(1,201); ones(1,201)];
+Ay = RZ(pi/2) * Ax;
+Az = RY(-pi/2) * Ax;
+
+Ax0 = Ax;
+Ay0 = Ay;
+Az0 = Az;
+Ax1 = T(0, 200, 0) * Ax;
+Ax2 = T(0, 0, 200) * Ax;
+Ax3 = T(0, 200, 200) * Ax;
+Ay1 = T(200, 0, 0) * Ay;
+Ay2 = T(200, 0, 200) * Ay;
+Ay3 = T(0, 0, 200) * Ay;
+Az1 = T(200, 0, 0) * Az;
+Az2 = T(200, 200, 0) * Az;
+Az3 = T(0, 200, 0) * Az;
+
+ARROW_1 = RX(pi/2) * ARROW;
+ARROW_2 = T(0, 200, 0) * ARROW_1;
+ARROW_3 = RZ(pi/2) * ARROW_1;
+ARROW_4 = T(200, 0, 0) * ARROW_3;
+
+C = [Ax0 Ax1 Ax2 Ax3 Ay0 Ay1 Ay2 Ay3 Az0 Az1 Az2 Az3 ARROW_1 ARROW_2 ARROW_3 ARROW_4];
+
+figure
+scatter3(C(1, :), C(2, :), C(3,:), <span class="string">'filled'</span>)
+</pre><img vspace="5" hspace="5" src="homework202_06.png" alt=""> <p>Drop the file aff.m into the same folder as this one. Then give me an example of how to use the aff function by projecting D without having to copy-paste a for loop in this file.</p><p>Move D so that it's centered at the point (0,0,10). Then project with d = 10.</p><pre class="codeinput">CU = aff(P(10) * T(-200, -200, -190) * C);
+
+figure
+scatter(CU(1, :), CU(2, :),<span class="string">'filled'</span>);
+axis([-500 500 -500 500]);
+</pre><img vspace="5" hspace="5" src="homework202_07.png" alt=""> <p>What on Earth are you looking at? What happened to half of the points? Why is this happening? Move the cube around in lots of different ways and project with d = 10 until you figure it out. Show me the pictures that you find most helpful in explaining your thinking, and be sure that each picture is accompanied by at least one full sentence of written work. Here's the core question: when a line passes through infinity in projective space, where does it come out on the other side of infinity?</p><pre class="codeinput"><span class="comment">% All parallel intersect lines becomes one point when they pass through infinity in projective</span>
+<span class="comment">% space. It comes out from the other side since projective space is</span>
+<span class="comment">% cyclical instead of linear.</span>
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Homework 1
+% Document what you're doing. In particular, tell me who you worked with
+% and what resources you used for each problem.
+
+% first we define a bunch of useful transformations
+syms T(a,b) R(t)
+T(a,b) = [1 0 a;0 1 b;0 0 1];
+R(t) = [cos(t) -sin(t) 0;sin(t) cos(t) 0;0 0 1];
+
+%% Part I: the smiley face.
+% Plot the smiley face in mutiple festive colors with "hold on".
+% Show me the four problems on the first group work.
+
+% S is the points in the face.
+S = transpose([
+    -1     2     1
+     1     2     1
+    -3     0     1
+     3     0     1
+    -1    -3     1
+     1    -3     1
+    -2    -2     1
+     2    -2     1
+     0    -3.5   1
+    -2.5  -1     1
+     2.5  -1     1
+]);
+
+% first we plot the eyes red
+figure
+scatter(S(1,1:3),S(2,1:3), 250, 'r','filled')
+% hold on and plot the mouth according the doc
+% doc scatter
+hold on
+c = linspace(1,10, length(S(1, :))-2);
+scatter(S(1,3:end),S(2,3:end), 250, c,'filled')
+axis square;axis([-5 5 -5 5]);
+hold off
+%% Part II: the cube.
+% Plot the unit cube C.
+% first, Justin's pictures on pages 65 and 66.
+clear
+clearvars
+I65 = imread('~/Desktop/page65.png');
+I66 = imread('~/Desktop/page66.png');
+figure
+imshow(I65)
+
+syms T(a,b,c) RX(t) RY(t) RZ(t) P(d)
+T(a,b,c)=[1 0 0 a;0 1 0 b;0 0 1 c;0 0 0 1];
+RX(t)=[1 0 0 0 ; 0 cos(t) -sin(t) 0;0 sin(t) cos(t) 0 ; 0 0 0 1];
+RY(t)=[cos(t) 0 sin(t) 0;0 1 0 0;-sin(t) 0 cos(t) 0 ;0 0 0 1];
+RZ(t)=[cos(t) -sin(t) 0 0;sin(t) cos(t) 0 0 ; 0 0 1 0; 0 0 0 1];
+P(d)=[1 0 0 0;0 1 0 0;0 0 0 0;0 0 -1/d 1];
+
+Ax = [0:.1:1; zeros(1,11); zeros(1,11); ones(1,11)];
+
+% Ax
+Ay = RZ(pi/2) * Ax;
+Az = RY(-pi/2) * Ax;
+
+% Cool okay. Now boost Ax, Ay, and Az to get the rest of the edges of the
+% cube. Then store the whole cube as C = [Ax Ay Az ...].
+
+Ax0 = Ax;
+Ay0 = Ay;
+Az0 = Az;
+Ax1 = T(0, 1, 0) * Ax;
+Ax2 = T(0, 0, 1) * Ax;
+Ax3 = T(0, 1, 1) * Ax;
+Ay1 = T(1, 0, 0) * Ay;
+Ay2 = T(1, 0, 1) * Ay;
+Ay3 = T(0, 0, 1) * Ay;
+Az1 = T(1, 0, 0) * Az;
+Az2 = T(1, 1, 0) * Az;
+Az3 = T(0, 1, 0) * Az;
+
+C = [Ax0 Ax1 Ax2 Ax3 Ay0 Ay1 Ay2 Ay3 Az0 Az1 Az2 Az3];
+%
+% Nice. This cube has the wrong dimensions though REPLACE_WITH_DASH_DASH it should be scaled
+% up and shifted to get it to Justin's cube. Do that and call it CJ.
+
+% JC = transpose([-1 -1 1 1; 3 -1 1 1; 3 3 1 1; -1 3 1 1; -1 -1 3 1; 3 -1 3 1; 3 3 3 1; -1 3 3 1]);
+% figure
+% scatter3(JC(1, :), JC(2, :), JC(3, :), 'filled')
+
+
+CJ = [ 4 0 0 0;
+       0 4 0 0;
+       0 0 2 0;
+       0 0 0 1;
+     ] * C;
+CJ = T(-1, -1, 1) * CJ;
+
+% Now prove that your cube is Justin's cube by creating the pictures on
+% pages 65 and 66.
+CJ1 = P(10) * CJ;
+
+for i=1:length(CJ1);
+CJ1(:,i)=CJ1(:,i) / CJ1(4,i);
+end;
+
+figure
+scatter(CJ1(1, :), CJ1(2, :),'filled')
+axis([-4 8 -4 8]);
+
+
+% page 66
+figure
+imshow(I66)
+
+CJ2 = P(10) * T(0, 0, -1) * RZ(pi/12) * RY(pi/3) * RX(pi/6) * CJ;
+for i=1:length(CJ2);
+CJ2(:,i)=CJ2(:,i) / CJ2(4,i);
+end;
+
+figure
+scatter(CJ2(1, :), CJ2(2, :),'filled')
+axis([-2 6 -3 4]);
+
+
+%% Part III: fun with projective space. No limit on group collaboration size.
+% 
+
+%
+% Starting with the unit cube C, add a few more points to make it clear which way is up.
+% Call your decorated cube D.
+% Examples of how to do this: you could put an arrow inside the cube, or
+% add pips on the faces to create a six-sided die. Show me what D looks
+% like with scatter3.
+
+clearvars
+
+syms T(a,b,c) RX(t) RY(t) RZ(t) P(d)
+T(a,b,c)=[1 0 0 a;0 1 0 b;0 0 1 c;0 0 0 1];
+RX(t)=[1 0 0 0 ; 0 cos(t) -sin(t) 0;0 sin(t) cos(t) 0 ; 0 0 0 1];
+RY(t)=[cos(t) 0 sin(t) 0;0 1 0 0;-sin(t) 0 cos(t) 0 ;0 0 0 1];
+RZ(t)=[cos(t) -sin(t) 0 0;sin(t) cos(t) 0 0 ; 0 0 1 0; 0 0 0 1];
+P(d)=[1 0 0 0;0 1 0 0;0 0 0 0;0 0 -1/d 1];
+
+Ax = [0:.1:1; zeros(1,11); zeros(1,11); ones(1,11)];
+Ay = RZ(pi/2) * Ax;
+Az = RY(-pi/2) * Ax;
+
+% Cool okay. Now boost Ax, Ay, and Az to get the rest of the edges of the
+% cube. Then store the whole cube as C = [Ax Ay Az ...].
+
+syms T(a,b,c) RX(t) RY(t) RZ(t) P(d)
+T(a,b,c)=[1 0 0 a;0 1 0 b;0 0 1 c;0 0 0 1];
+RX(t)=[1 0 0 0 ; 0 cos(t) -sin(t) 0;0 sin(t) cos(t) 0 ; 0 0 0 1];
+RY(t)=[cos(t) 0 sin(t) 0;0 1 0 0;-sin(t) 0 cos(t) 0 ;0 0 0 1];
+RZ(t)=[cos(t) -sin(t) 0 0;sin(t) cos(t) 0 0 ; 0 0 1 0; 0 0 0 1];
+P(d)=[1 0 0 0;0 1 0 0;0 0 0 0;0 0 -1/d 1];
+
+%% now we open an image and sample a bunch of points from that image
+% convert index to points
+[A, maps, alpha] = imread('~/Desktop/arrow.png');
+ARROW = [0; 0; 0; 0];
+for i=1:10:length(alpha);
+    for j=1:10:length(alpha(i, :));
+        if alpha(i,j) > 0;
+            ARROW = [ARROW [i; j; 0; 1]]; % TODO: perf
+        end
+    end
+end;
+
+Ax = [0:1:200; zeros(1,201); zeros(1,201); ones(1,201)];
+Ay = RZ(pi/2) * Ax;
+Az = RY(-pi/2) * Ax;
+
+Ax0 = Ax;
+Ay0 = Ay;
+Az0 = Az;
+Ax1 = T(0, 200, 0) * Ax;
+Ax2 = T(0, 0, 200) * Ax;
+Ax3 = T(0, 200, 200) * Ax;
+Ay1 = T(200, 0, 0) * Ay;
+Ay2 = T(200, 0, 200) * Ay;
+Ay3 = T(0, 0, 200) * Ay;
+Az1 = T(200, 0, 0) * Az;
+Az2 = T(200, 200, 0) * Az;
+Az3 = T(0, 200, 0) * Az;
+
+ARROW_1 = RX(pi/2) * ARROW;
+ARROW_2 = T(0, 200, 0) * ARROW_1; 
+ARROW_3 = RZ(pi/2) * ARROW_1;
+ARROW_4 = T(200, 0, 0) * ARROW_3;
+
+C = [Ax0 Ax1 Ax2 Ax3 Ay0 Ay1 Ay2 Ay3 Az0 Az1 Az2 Az3 ARROW_1 ARROW_2 ARROW_3 ARROW_4];
+
+figure
+scatter3(C(1, :), C(2, :), C(3,:), 'filled')
+
+
+
+%%
+% Drop the file aff.m into the same folder as this one. Then give me an
+% example of how to use the aff function by projecting D without having to
+% copy-paste a for loop in this file.
+
+%%
+% Move D so that it's centered at the point (0,0,10). Then project with
+% d = 10.
+
+CU = aff(P(10) * T(-200, -200, -190) * C);
+
+figure
+scatter(CU(1, :), CU(2, :),'filled');
+axis([-500 500 -500 500]);
+%%
+% What on Earth are you looking at? What happened to half of the points?
+% Why is this happening? Move the cube around in lots of different ways and
+% project with d = 10
+% until you figure it out. Show me the pictures that you find most helpful
+% in explaining your thinking, and be sure that each picture is accompanied
+% by at least one full sentence of written work. Here's the core question:
+% when a line passes through infinity in projective space, where does it
+% come out on the other side of infinity?
+
+% All parallel intersect lines becomes one point when they pass through infinity in projective
+% space. It comes out from the other side since projective space is
+% cyclical instead of linear.
+
+##### SOURCE END #####
+--></body></html>
