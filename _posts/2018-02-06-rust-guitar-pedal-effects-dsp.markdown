@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Fun weekend hack: cool effects pedals"
+title:  "Guitar Effects in Rust"
 date:   2018-02-06 00:00:00 -0400
 categories: jekyll update
 ---
