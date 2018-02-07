@@ -9,6 +9,8 @@ A guitar effect alters how the input sounds by adding distortion, delaying signa
 
 This projects uses JACK(**J**ACK **A**udio **C**onnection **K**it), registers input and output ports on JACK server. I googled around and found [rust-jack](https://github.com/RustAudio/rust-jack) and quickly got audio playback to work.
 
+[Sample mp3](/out.mp3)
+
 # Setup
 
 I first booted up a server with [qjackctl](https://i.imgur.com/7052cHF.png), then got a playback example to work:

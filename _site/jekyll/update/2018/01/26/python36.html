@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>How to use async generator in python3.6 to process streaming data</title>
+  <meta name="description" content="Like many, my first programming language is Python 2.7. This year, I decided to make the switch alias python=python3.6. Other than a 10% increase in processi...">
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-98721585-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-98721585-1');
+  </script>
+
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://rickyhan.com/jekyll/update/2018/01/26/python36.html">
+  <link rel="alternate" type="application/rss+xml" title="Ricky Han blog" href="http://rickyhan.com/feed.xml">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Ricky Han blog</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">How to use async generator in python3.6 to process streaming data</h1>
+    <p class="post-meta"><time datetime="2018-01-26T23:00:00-05:00" itemprop="datePublished">Jan 26, 2018</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>Like many, my first programming language is Python 2.7. This year, I decided to make the switch <code class="highlighter-rouge">alias python=python3.6</code>. Other than a 10% increase in processing speed, it has some perks not previously possible in 2.7.</p>
+
+<p>In this post, I will publish a minimal, complete, and verifiable example of a script implemented in Python 3.6.</p>
+
+<h2 id="async-generators-what-are-those">Async Generators: what are those?</h2>
+
+<p>Suppose we have a stream that generates a bunch of values required by other parts of the program. With <code class="highlighter-rouge">asyncio</code>, the stream processing loop is run concurrently so it doesn’t block. It is introduced in 3.6.</p>
+
+<p>This example program does the following:
+1. Receive a batch of data from stream continuously
+2. Every x seconds, do something with the batch, repeat</p>
+
+<p>Here is the async generator:</p>
+
+<p><code class="highlighter-rouge">python
+import asyncio
+from tectonic import TectonicDB
+import json
+async def subscribe(name):
+    db = TectonicDB(host="localhost", port=9001)
+    _success, _text = await db.subscribe(name)
+    while 1:
+        _, text = await db.poll()
+        if b"NONE" == text:
+            await asyncio.sleep(0.001)
+        else:
+            yield json.loads(text)
+</code></p>
+
+<p>As we can see, <code class="highlighter-rouge">subscribe</code> connects to a TectonicDB instance and subscribes to a data store then polls forever. This coroutine yields new order book updates as they come in.</p>
+
+<p>Next, we define a structure to store this data.</p>
+
+<p>```python
+class TickBatcher(object):
+    def <strong>init</strong>(self, db_name):
+        self.one_batch = []
+        self.db_name = db_name</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>async def sub(self):
+    async for item in subscribe(self.db_name):
+        self.one_batch.append(item) ```
+</code></pre>
+</div>
+
+<p>Now since the generator is async, the iteration must also be async as in only iterate when new data comes in.</p>
+
+<p>We write the main logic in a separate coroutine.</p>
+
+<p>```python
+def timer(secs=1):
+    “"”async timer decorator”””
+    def _timer(f):
+        async def wrapper(*args, **kwargs):
+            while 1:
+                await asyncio.sleep(s)
+                await f()
+        return wrapper
+    return _timer</p>
+
+<p>class TickBatcher(object):
+    …
+    @timer(secs=10)
+    async def run(self):
+        # do work here
+        print(len(self.one_batch))
+        self.one_batch = []
+```</p>
+
+<p>We use a decorator to hide the <code class="highlighter-rouge">sleep</code>ing logic.</p>
+
+<p>Finally, in order to run the program, we need to create the tasks separately.</p>
+
+<p>```python
+if <strong>name</strong> == ‘<strong>main</strong>’:
+    loop = asyncio.get_event_loop()</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>proc = TickBatcher("bnc_xrp_btc")
+loop.create_task(proc.sub())
+loop.create_task(proc.run())
+
+loop.run_forever()
+loop.close() ```
+</code></pre>
+</div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>In this short post we used Python3.6 async generator to implement a simple script to monitor market or place simple orders.</p>
+
+<h1 id="if-you-find-this-article-helpful-you-should-sign-up-to-get-updateshttpstinylettercomrickyhan"><a href="https://tinyletter.com/rickyhan">If you find this article helpful, you should sign up to get updates.</a></h1>
+
+  </div>
+
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Ricky Han blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Ricky Han blog</li>
+          <li><a href="mailto:rickyhan+blog@rickyhan.com">rickyhan+blog@rickyhan.com</a></li>
+          <li><a href="https://tinyletter.com/rickyhan">Subscribe</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>Programming demos, tips, thoughts.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

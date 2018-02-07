@@ -1,0 +1,243 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>groupwork129</title><meta name="generator" content="MATLAB 9.3"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2018-01-29"><meta name="DC.source" content="groupwork129.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#7">page 66</a></li></ul></div><pre class="codeinput">syms <span class="string">T(a,b,c)</span> <span class="string">RX(t)</span> <span class="string">RY(t)</span> <span class="string">RZ(t)</span> <span class="string">P(d)</span>
+T(a,b,c)=[1 0 0 a;0 1 0 b;0 0 1 c;0 0 0 1];
+RX(t)=[1 0 0 0 ; 0 cos(t) -sin(t) 0;0 sin(t) cos(t) 0 ; 0 0 0 1];
+RY(t)=[cos(t) 0 sin(t) 0;0 1 0 0;-sin(t) 0 cos(t) 0 ;0 0 0 1];
+RZ(t)=[cos(t) -sin(t) 0 0;sin(t) cos(t) 0 0 ; 0 0 1 0; 0 0 0 1];
+P(d)=[1 0 0 0;0 1 0 0;0 0 0 0;0 0 -1/d 1];
+</pre><p>For this project, you're going to build a cube like in Justin's notes.</p><pre class="codeinput">Ax = [0:.1:1; zeros(1,11); zeros(1,11); ones(1,11)];
+
+figure
+scatter(Ax(1,:),Ax(2,:),<span class="string">'filled'</span>);
+axis <span class="string">square</span>;axis([-5 5 -5 5]);
+</pre><img vspace="5" hspace="5" src="groupwork129_01.png" alt=""> <p>Ax represents some points on the x-axis in 3-space. Rotate them to get two lists of points Ay and Az on the y- and z-axes. Note: you can "cheat" and see what you're doing by calling scatter3() on the first three columns of Ax.</p><pre class="codeinput"><span class="comment">% Ax</span>
+Ay = RZ(pi/2) * Ax;
+Az = RY(-pi/2) * Ax;
+
+figure
+scatter(Ay(1,:),Ay(2,:),<span class="string">'filled'</span>);
+axis <span class="string">square</span>;axis([-5 5 -5 5]);
+</pre><img vspace="5" hspace="5" src="groupwork129_02.png" alt=""> <p>Cool okay. Now boost Ax, Ay, and Az to get the rest of the edges of the cube. Then store the whole cube as C = [Ax Ay Az ...].</p><pre class="codeinput">Ax0 = Ax;
+Ay0 = Ay;
+Az0 = Az;
+Ax1 = T(0, 1, 0) * Ax;
+Ax2 = T(0, 0, 1) * Ax;
+Ax3 = T(0, 1, 1) * Ax;
+Ay1 = T(1, 0, 0) * Ay;
+Ay2 = T(1, 0, 1) * Ay;
+Ay3 = T(0, 0, 1) * Ay;
+Az1 = T(1, 0, 0) * Az;
+Az2 = T(1, 1, 0) * Az;
+Az3 = T(0, 1, 0) * Az;
+
+C = [Ax0 Ax1 Ax2 Ax3 Ay0 Ay1 Ay2 Ay3 Az0 Az1 Az2 Az3];
+
+figure
+scatter3(C(1, :), C(2, :), C(3,:), <span class="string">'filled'</span>)
+</pre><img vspace="5" hspace="5" src="groupwork129_03.png" alt=""> <p>Nice. This cube has the wrong dimensions though -- it should be scaled up and shifted to get it to Justin's cube. Do that and call it CJ.</p><pre class="codeinput"><span class="comment">% JC = transpose([-1 -1 1 1; 3 -1 1 1; 3 3 1 1; -1 3 1 1; -1 -1 3 1; 3 -1 3 1; 3 3 3 1; -1 3 3 1]);</span>
+<span class="comment">% figure</span>
+<span class="comment">% scatter3(JC(1, :), JC(2, :), JC(3, :), 'filled')</span>
+
+
+CJ = [ 4 0 0 0;
+       0 4 0 0;
+       0 0 2 0;
+       0 0 0 1;
+     ] * C;
+CJ = T(-1, -1, 1) * CJ;
+figure
+scatter3(CJ(1, :), CJ(2, :), CJ(3, :), <span class="string">'filled'</span>);
+</pre><img vspace="5" hspace="5" src="groupwork129_04.png" alt=""> <p>Now prove that your cube is Justin's cube by creating the pictures on pages 65 and 66.</p><pre class="codeinput">CJ1 = P(10) * CJ;
+CJ1
+
+<span class="keyword">for</span> i=1:length(CJ1);
+CJ1(:,i)=CJ1(:,i) / CJ1(4,i);
+<span class="keyword">end</span>;
+
+figure
+scatter(CJ1(1, :), CJ1(2, :),<span class="string">'filled'</span>);
+axis([-4 8 -4 8]);
+</pre><pre class="codeoutput"> 
+CJ1 =
+ 
+[   -1, -3/5, -1/5,  1/5,  3/5,    1,  7/5,  9/5, 11/5, 13/5,    3,   -1, -3/5, -1/5,  1/5,  3/5,    1,  7/5,  9/5, 11/5, 13/5,    3,   -1, -3/5, -1/5,  1/5,  3/5,    1,  7/5,  9/5, 11/5, 13/5,    3,   -1, -3/5, -1/5,  1/5,  3/5,    1,  7/5,  9/5, 11/5, 13/5,    3,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,    -1,    -1,    -1,    -1,  -1,    -1,    -1,    -1,    -1,   -1,    3,     3,     3,     3,     3,   3,     3,     3,     3,     3,    3,    3,     3,     3,     3,     3,   3,     3,     3,     3,     3,    3,   -1,    -1,    -1,    -1,    -1,  -1,    -1,    -1,    -1,    -1,   -1]
+[   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,    3,   -1, -3/5, -1/5,  1/5,  3/5,    1,  7/5,  9/5, 11/5, 13/5,    3,   -1, -3/5, -1/5,  1/5,  3/5,    1,  7/5,  9/5, 11/5, 13/5,    3,   -1, -3/5, -1/5,  1/5,  3/5,    1,  7/5,  9/5, 11/5, 13/5,    3,   -1, -3/5, -1/5,  1/5,  3/5,    1,  7/5,  9/5, 11/5, 13/5,    3,   -1,    -1,    -1,    -1,    -1,  -1,    -1,    -1,    -1,    -1,   -1,   -1,    -1,    -1,    -1,    -1,  -1,    -1,    -1,    -1,    -1,   -1,    3,     3,     3,     3,     3,   3,     3,     3,     3,     3,    3,    3,     3,     3,     3,     3,   3,     3,     3,     3,     3,    3]
+[    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,     0,   0,     0,     0,     0,     0,    0,    0,     0,     0,     0,     0,   0,     0,     0,     0,     0,    0,    0,     0,     0,     0,     0,   0,     0,     0,     0,     0,    0,    0,     0,     0,     0,     0,   0,     0,     0,     0,     0,    0]
+[ 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 9/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 7/10, 9/10, 22/25, 43/50, 21/25, 41/50, 4/5, 39/50, 19/25, 37/50, 18/25, 7/10, 9/10, 22/25, 43/50, 21/25, 41/50, 4/5, 39/50, 19/25, 37/50, 18/25, 7/10, 9/10, 22/25, 43/50, 21/25, 41/50, 4/5, 39/50, 19/25, 37/50, 18/25, 7/10, 9/10, 22/25, 43/50, 21/25, 41/50, 4/5, 39/50, 19/25, 37/50, 18/25, 7/10]
+ 
+</pre><img vspace="5" hspace="5" src="groupwork129_05.png" alt=""> <h2 id="7">page 66</h2><pre class="codeinput">CJ2 = P(10) * T(0, 0, -1) * RZ(pi/12) * RY(pi/3) * RX(pi/6) * CJ;
+<span class="keyword">for</span> i=1:length(CJ2);
+CJ2(:,i)=CJ2(:,i) / CJ2(4,i);
+<span class="keyword">end</span>;
+
+figure
+scatter(CJ2(1, :), CJ2(2, :),<span class="string">'filled'</span>);
+axis([-2 6 -3 4]);
+</pre><img vspace="5" hspace="5" src="groupwork129_06.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+
+syms T(a,b,c) RX(t) RY(t) RZ(t) P(d)
+T(a,b,c)=[1 0 0 a;0 1 0 b;0 0 1 c;0 0 0 1];
+RX(t)=[1 0 0 0 ; 0 cos(t) -sin(t) 0;0 sin(t) cos(t) 0 ; 0 0 0 1];
+RY(t)=[cos(t) 0 sin(t) 0;0 1 0 0;-sin(t) 0 cos(t) 0 ;0 0 0 1];
+RZ(t)=[cos(t) -sin(t) 0 0;sin(t) cos(t) 0 0 ; 0 0 1 0; 0 0 0 1];
+P(d)=[1 0 0 0;0 1 0 0;0 0 0 0;0 0 -1/d 1];
+
+%%
+% For this project, you're going to build a cube like in Justin's notes.
+
+Ax = [0:.1:1; zeros(1,11); zeros(1,11); ones(1,11)];
+
+figure
+scatter(Ax(1,:),Ax(2,:),'filled');
+axis square;axis([-5 5 -5 5]);
+
+
+%%
+% Ax represents some points on the x-axis in 3-space. Rotate them to get
+% two lists of points Ay and Az on the y- and z-axes. Note: you can "cheat"
+% and see what you're doing by calling scatter3() on the first three
+% columns of Ax.
+
+% Ax
+Ay = RZ(pi/2) * Ax;
+Az = RY(-pi/2) * Ax;
+
+figure
+scatter(Ay(1,:),Ay(2,:),'filled');
+axis square;axis([-5 5 -5 5]);
+
+
+%%
+% Cool okay. Now boost Ax, Ay, and Az to get the rest of the edges of the
+% cube. Then store the whole cube as C = [Ax Ay Az ...].
+
+Ax0 = Ax;
+Ay0 = Ay;
+Az0 = Az;
+Ax1 = T(0, 1, 0) * Ax;
+Ax2 = T(0, 0, 1) * Ax;
+Ax3 = T(0, 1, 1) * Ax;
+Ay1 = T(1, 0, 0) * Ay;
+Ay2 = T(1, 0, 1) * Ay;
+Ay3 = T(0, 0, 1) * Ay;
+Az1 = T(1, 0, 0) * Az;
+Az2 = T(1, 1, 0) * Az;
+Az3 = T(0, 1, 0) * Az;
+
+C = [Ax0 Ax1 Ax2 Ax3 Ay0 Ay1 Ay2 Ay3 Az0 Az1 Az2 Az3];
+
+figure
+scatter3(C(1, :), C(2, :), C(3,:), 'filled')
+
+%%
+% Nice. This cube has the wrong dimensions though REPLACE_WITH_DASH_DASH it should be scaled
+% up and shifted to get it to Justin's cube. Do that and call it CJ.
+
+% JC = transpose([-1 -1 1 1; 3 -1 1 1; 3 3 1 1; -1 3 1 1; -1 -1 3 1; 3 -1 3 1; 3 3 3 1; -1 3 3 1]);
+% figure
+% scatter3(JC(1, :), JC(2, :), JC(3, :), 'filled')
+
+
+CJ = [ 4 0 0 0;
+       0 4 0 0;
+       0 0 2 0;
+       0 0 0 1;
+     ] * C;
+CJ = T(-1, -1, 1) * CJ;
+figure
+scatter3(CJ(1, :), CJ(2, :), CJ(3, :), 'filled');
+%%
+% Now prove that your cube is Justin's cube by creating the pictures on
+% pages 65 and 66.
+CJ1 = P(10) * CJ;
+CJ1
+
+for i=1:length(CJ1);
+CJ1(:,i)=CJ1(:,i) / CJ1(4,i);
+end;
+
+figure
+scatter(CJ1(1, :), CJ1(2, :),'filled');
+axis([-4 8 -4 8]);
+
+%% page 66
+CJ2 = P(10) * T(0, 0, -1) * RZ(pi/12) * RY(pi/3) * RX(pi/6) * CJ;
+for i=1:length(CJ2);
+CJ2(:,i)=CJ2(:,i) / CJ2(4,i);
+end;
+
+figure
+scatter(CJ2(1, :), CJ2(2, :),'filled');
+axis([-2 6 -3 4]);
+
+
+##### SOURCE END #####
+--></body></html>
