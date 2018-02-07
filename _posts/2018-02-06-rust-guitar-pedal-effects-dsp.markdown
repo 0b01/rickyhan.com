@@ -7,15 +7,11 @@ categories: jekyll update
 
 A guitar effect alters how the input sounds by adding distortion, delaying signal, shifting pitch/frequency and changing dynamics and loudness. Most physical pedals are analog - altering the electric signals directly, with non-existent latency. Digital effect units sample the source input at high frequencies(44100 Hertz) and quickly process using DSP algorithms so the output appears live.
 
-This projects uses JACK(**J**ACK **A**udio **C**onnection **K**it) and uses the abstraction of jack. The program registers input and output ports on JACK server and processes audio as it comes in. I googled around and found [rust-jack](https://github.com/RustAudio/rust-jack) and quickly got audio playback to work.
+This projects uses JACK(**J**ACK **A**udio **C**onnection **K**it), registers input and output ports on JACK server. I googled around and found [rust-jack](https://github.com/RustAudio/rust-jack) and quickly got audio playback to work.
 
 # Setup
 
-I first booted up a server with `qjackctl` and changed setup to lower latency(bottom right corner)...
-
-![qjackctl](https://i.imgur.com/7052cHF.png)
-
-Then got a playback example to work...
+I first booted up a server with [qjackctl](https://i.imgur.com/7052cHF.png), then got a playback example to work:
 
 ```rust
 extern crate jack;
@@ -56,15 +52,13 @@ fn main() {
 }
 ```
 
-This program copies a `&[f32]` of length `samples/period`(in this case 128) from input port to output port 44100 times per second.
+This program copies a `&[f32]` of length `samples/period`(in this case 128) from input port to output port for 44100 times every second.
 
-Now it is time to implement some cool effects! But first, I need some kind of trait to keep things organized.
+Now it's time to implement some cool effects! But first, let's create a trait to keep things organized.
 
 # `Effect` trait
 
 ```rust
-use std::slice;
-pub mod overdrive;
 pub trait Effect : Send {
     fn new() -> Self
         where Self: Sized;
@@ -89,12 +83,6 @@ use effects::{Effect, CtrlMsg};
 pub struct Overdrive {
     pub bypassing: bool,
 }
-
-/// Audio at a low input level is driven by higher input
-/// levels in a non-linear curve characteristic
-/// 
-/// For overdrive, Symmetrical soft clipping of input values has to
-/// be performed.
 impl Effect for Overdrive {
     fn new() -> Self {
         Overdrive {
@@ -135,7 +123,7 @@ impl Effect for Overdrive {
 }
 ```
 
-This effect doubles quiet signals such as eddy currents produced by pickup. It uses a [symmetrical soft clipping](http://sound.whsites.net/articles/soft-clip.htm) to amplify the middle parts. It sounds exactly like the overdrive on my amp. Not really a fan but I was glad it works.
+This effect doubles quiet signals such as eddy currents produced by pickup. It uses a [symmetrical soft clipping](http://sound.whsites.net/articles/soft-clip.htm) to amplify the middle parts. It sounds exactly like the overdrive on my amp.
 
 # Delay 
 
