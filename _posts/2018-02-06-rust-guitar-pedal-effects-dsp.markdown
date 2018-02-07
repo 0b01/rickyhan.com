@@ -58,7 +58,7 @@ fn main() {
 
 This program copies a `&[f32]` of length `samples/period`(in this case 128) from input port to output port 44100 times per second.
 
-Now it is time to implement some cool effects! But first, I need some kind of trait just to keep things organized.
+Now it is time to implement some cool effects! But first, I need some kind of trait to keep things organized.
 
 # `Effect` trait
 
@@ -240,11 +240,11 @@ impl Effect for Delay {
 }
 ```
 
-This effect uses a ring buffer which is a fixed sized vector for streaming data. It overwrites data in the front when a pointer reached the end. A notable property of the ring buffer is that it's lock-free thread safe as long as there is only one reader and one writer whose roles cannot be interchanged and writer pointer never catches up with reader pointer. The difference between writer and reader pointers is always the delayed samples. The rest is trivial.
+This effect uses a ring buffer which is a fixed sized vector for streaming data. It overwrites data in the front when a pointer reached the end. A notable property of the ring buffer is that it's locklessly thread safe as long as there is only one reader and one writer whose roles aren't switched, and writer pointer never catches up with reader pointer. The difference between writer and reader pointers is always the delayed samples. The rest is trivial.
 
 # Auto Wah
 
-Auto Wah is my personal favorite(vocoder is next). The idea is simple: autowah ≡ filter controlled by envelope follower. The louder the sound, the more oo, and conversely aa. The filter can be tweaked to output different human sounding vowel voices like ooii(highpass filter), ooaa(bandpass), ooee(lowpass). Unlike a conventional wah pedal, it only responds to the volume of the input signal - buffer not needed. The code below is ported from a C++ implementation found on [github](https://github.com/dangpzanco/autowah). All credit goes to the original author.
+Auto Wah is my personal favorite(vocoder after). The idea is simple: autowah ≡ filter controlled by envelope follower. The louder the sound, the more oo, and conversely aa. The filter can be tweaked to output different human sounding vowel voices like ooii(highpass filter), ooaa(bandpass), ooee(lowpass). Unlike a conventional wah pedal, it only responds to the volume of the input signal - buffer not needed. The code below is ported from a C++ implementation found on [github](https://github.com/dangpzanco/autowah). All credit goes to the original author.
 
 ![image courtesy of the original author](https://i.imgur.com/tWrOwXs.png)
 
