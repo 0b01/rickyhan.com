@@ -139,12 +139,12 @@ Here is a graph for the transformation for signals with aboslute between 1/3 and
 
 # Delay 
 
-After a taste of overdrive, I wanted to implement a time-dependent effect. A delay of 0.2 second with 0.3 feedback means an echo of amplitude 0.3 of the original after 0.2 seconds. And then another signal of amplitude of 0.09 after 0.4.
+After writing overdrive, I wanted to implement a time-dependent effect. A delay of 0.2 second with 0.3 feedback means an attenuated echo of amplitude 0.3 of the original after 0.2 seconds, and then another echo of amplitude of 0.09 after 0.4 seconds.
 
 This can be done in 2 ways:
 
 1. Convolve the original signal with an impulse response. See this excellent [talk](https://youtu.be/HTfa2UF_oiI?t=27m53s). However, this is out of scope for our purpose.
-2. Use a longer buffer and add an attenuated signal from t samples before. A good data structure for this is a ring buffer.
+2. Use a longer buffer to store previous signals and calcuate an attenuated signal from t samples before. A good data structure to use for this is the **ring buffer**.
 
 This is the implementation for this effect(explanation below):
 
@@ -244,7 +244,7 @@ This effect uses a ring buffer which is a fixed sized vector for streaming data.
 
 # Auto Wah
 
-Auto Wah is my personal favorite(vocoder is second). The idea is simple: filter controlled by envelope follower. The louder the sound, the more oo, and conversely aa. The filter can be tweaked to achieve different vowels. It outputs human sounding vowels voices like ooii(highpass filter), ooaa(bandpass), ooee(lowpass). Unlike a conventional wah pedal, it only responds to the volume of the input signal so buffers are not necessary. I ported the code from a C++ implementation found on [github](https://github.com/dangpzanco/autowah).
+Auto Wah is my personal favorite(vocoder is next). The idea is simple: autowah ≡ filter controlled by envelope follower. The louder the sound, the more oo, and conversely aa. The filter can be tweaked to output different human sounding vowel voices like ooii(highpass filter), ooaa(bandpass), ooee(lowpass). Unlike a conventional wah pedal, it only responds to the volume of the input signal - buffer not needed. The code below is ported from a C++ implementation found on [github](https://github.com/dangpzanco/autowah). All credit goes to the original author.
 
 ![image courtesy of the original author](https://i.imgur.com/tWrOwXs.png)
 
