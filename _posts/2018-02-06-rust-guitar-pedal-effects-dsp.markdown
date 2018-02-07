@@ -5,17 +5,17 @@ date:   2018-02-06 00:00:00 -0400
 categories: jekyll update
 ---
 
-A guitar effect alters how the input sounds by adding distortion, delaying signal, shifting pitch/frequency and changing dynamics and loudness. Most physical pedals are analog - altering the electric signals directly, with non-existent latency. Digital effects sample the source input at high frequencies(44100 Hertz) and quickly process using DSP algorithms so it appears live.
+A guitar effect alters how the input sounds by adding distortion, delaying signal, shifting pitch/frequency and changing dynamics and loudness. Most physical pedals are analog - altering the electric signals directly, with non-existent latency. Digital effect units sample the source input at high frequencies(44100 Hertz) and quickly process using DSP algorithms so the output appears live.
 
-My project uses JACK which stands for **JACK Audio Connection Kit** and uses the abstraction of port, or plug, socket, jack. The idea is writing a program that registers input and output ports on JACK server and processes audio as it comes in. So I googled around and found [rust-jack](https://github.com/RustAudio/rust-jack) and quickly got audio playback to work.
+This projects uses JACK(**J**ACK **A**udio **C**onnection **K**it) and uses the abstraction of jack. The program registers input and output ports on JACK server and processes audio as it comes in. I googled around and found [rust-jack](https://github.com/RustAudio/rust-jack) and quickly got audio playback to work.
 
 # Setup
 
-I first booted up a server with `qjackctl` and changed the setup to lower the latency(bottom right corner).
+I first booted up a server with `qjackctl` and changed setup to lower latency(bottom right corner)...
 
 ![qjackctl](https://i.imgur.com/7052cHF.png)
 
-Then the playback example from `rust-jack` works and the audio appears live:
+Then got a playback example to work...
 
 ```rust
 extern crate jack;
@@ -58,6 +58,8 @@ fn main() {
 
 This program copies a `&[f32]` of length `samples/period`(in this case 128) from input port to output port 44100 times per second.
 
+Now it is time to implement some cool effects! But first, I need some kind of trait just to keep things organized.
+
 # `Effect` trait
 
 ```rust
@@ -76,9 +78,11 @@ pub trait Effect : Send {
 }
 ```
 
-This trait defines the minimum set of methods for an effect struct. Note that Effect needs to be `Send` for it to cross thread boundary and move into the closure and `Sized` for it to be a [trait object](https://doc.rust-lang.org/book/first-edition/trait-objects.html#object-safety).
+This trait defines the minimum set of methods for an effect struct. Note that Effect needs to be `Send` for it to cross thread boundaries(for example, move into the closure) and `Sized` for it to be a [trait object](https://doc.rust-lang.org/book/first-edition/trait-objects.html#object-safety).
 
-A simple Effect implementing this trait is Overdrive:
+# Overdrive
+
+Then I wrote a very simple but real effect: overdrive. Guitarists originally obtained an overdriven sound by turning up their vacuum tube-powered guitar amplifiers to high volumes, which caused the signal to get distorted(wiki).
 
 ```rust
 use effects::{Effect, CtrlMsg};
@@ -131,15 +135,11 @@ impl Effect for Overdrive {
 }
 ```
 
-This effect doubles signals whose absolute values are <= 1/3. This includes the eddy currents produced by guitar pickup. It uses a symmetrical soft clipping quadratic equation to amplify the middle parts. It sounds exactly like the overdrive button on my amp.
-
-Here is a graph for the transformation for signals with aboslute between 1/3 and 2/3.
-
-![middle transformation](https://i.imgur.com/sS2Bwwt.png)
+This effect doubles quiet signals such as eddy currents produced by pickup. It uses a [symmetrical soft clipping](http://sound.whsites.net/articles/soft-clip.htm) to amplify the middle parts. It sounds exactly like the overdrive on my amp. Not really a fan but I was glad it works.
 
 # Delay 
 
-After writing overdrive, I wanted to implement a time-dependent effect. A delay of 0.2 second with 0.3 feedback means an attenuated echo of amplitude 0.3 of the original after 0.2 seconds, and then another echo of amplitude of 0.09 after 0.4 seconds.
+After writing overdrive, I wanted to implement a time-dependent effect. Some sort of delay, echo, reverb would be nice. A delay of 0.2 second with 0.3 feedback means an attenuated echo of amplitude 0.3 of the original after 0.2 seconds, and then another echo of amplitude of 0.09 after 0.4 seconds.
 
 This can be done in 2 ways:
 
@@ -820,7 +820,9 @@ pub fn parse_input(cmd: &str) -> CtrlMsg {
 }
 ```
 
+# More
 
+I don't plan on adding more effects in the short term but I would love to have vocoder: pitch shift mic input based on guitar notes.
 
 ## Conclusion
 
