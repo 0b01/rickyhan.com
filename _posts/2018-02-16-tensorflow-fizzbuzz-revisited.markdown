@@ -5,7 +5,7 @@ date:   2018-02-16 00:00:00 -0400
 categories: jekyll update
 ---
 
-**interviewer**: Welcome. You file indicates an application from two years ago but didn't pass the coding interview.
+**interviewer**: Welcome. You file indicates an application from two years ago but [didn't pass the coding interview](http://joelgrus.com/2016/05/23/fizz-buzz-in-tensorflow/).
 
 **me**: Yes. I had some trouble with FizzBuzz.
 
@@ -145,3 +145,6 @@ g@g:~/Desktop/py2tf⟫ python test.py
 ```
 
 **interviewer**: Don't apply again.
+
+
+Read [the OG fizzbuzzer](http://joelgrus.com/2016/05/23/fizz-buzz-in-tensorflow/)
