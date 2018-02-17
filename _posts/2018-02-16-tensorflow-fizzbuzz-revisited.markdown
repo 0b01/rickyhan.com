@@ -5,7 +5,7 @@ date:   2018-02-16 00:00:00 -0400
 categories: jekyll update
 ---
 
-**interviewer**: Good morning. You file indicates an application from two years ago but didn't pass the coding interview.
+**interviewer**: Welcome. You file indicates an application from two years ago but didn't pass the coding interview.
 
 **me**: Yes. I had some trouble with FizzBuzz.
 
@@ -145,52 +145,3 @@ g@g:~/Desktop/py2tf⟫ python test.py
 ```
 
 **interviewer**: Don't apply again.
-
-# Conclusion
-
-On a more serious note, I have been thinking about a framework-agnostic DSL that transpiles to Tensorflow and PyTorch with strong typing, dimension and ownership checking and lots of syntax sugars. This is borne out of frustration: I am so tired of deciphering undocumented code. I get it - people are lazy and unsafe unless the compiler forces them to annotate. At most 4 dimensions! However, this will be an undertaking if I decide to do it.
-
-```rust
-use conv::{Conv2d, Dropout2d, maxpool2d};
-use linear::Linear;
-use loss::log_softmax;
-use relu;
-
-// here are weights that need to be allocated(on CPU or GPU)
-
-declare Mnist<?,c,h,w -> ?,10>;
-
-weights Mnist {
-    conv1: Conv2d<?,c,hi,wi -> ?,c,ho,wo>::new(in_ch=1, out_ch=10, kernel_size=5),
-    conv2: Conv2d<?,c,hi,wi -> ?,c,ho,wo>::new(in_ch=10, out_ch=20, kernel_size=5),
-    dropout: Dropout2d<?,c,h,w -> ?,c,h,w>::new(p=0.5),
-    fc1: Linear<?,320 -> ?,50>::new(),
-    fc2: Linear<?,50 -> ?,10>::new(),
-}
-
-ops Mnist {
-
-    // runs automatically
-    op new() {
-        Self::weights()
-        conv1.init_normal();
-        conv2.init_normal();
-    }
-
-    op forward(x) {
-        x
-        |> conv1            |> maxpool2d(kernel_size=2)
-        |> conv2 |> dropout |> maxpool2d(kernel_size=2)
-        |> view(?, 320)
-        |> fc1 |> relu
-        |> self.fc2
-        |> log_softmax(dim=1)
-    }
-
-    // impure function, needs annotation
-    op fc2(self, x: <?,50>) -> <?,10>{
-        x |> fc2 |> relu
-    }
-}
-
-```
