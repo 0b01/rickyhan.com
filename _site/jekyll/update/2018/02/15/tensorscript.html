@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Why We Need Type-Checked Neural Network</title>
+  <meta name="description" content="Imagine a framework-agnostic DSL with strong typing, dimension and ownership checking and lots of syntax sugar. What would it be like? As interesting as it i...">
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-98721585-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-98721585-1');
+  </script>
+
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://rickyhan.com/jekyll/update/2018/02/15/tensorscript.html">
+  <link rel="alternate" type="application/rss+xml" title="Ricky Han blog" href="http://rickyhan.com/feed.xml">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Ricky Han blog</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Why We Need Type-Checked Neural Network</h1>
+    <p class="post-meta"><time datetime="2018-02-15T23:00:00-05:00" itemprop="datePublished">Feb 15, 2018</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>Imagine a framework-agnostic DSL with strong typing, dimension and ownership checking and lots of syntax sugar. What would it be like? As interesting as it is, here is why there needs to a langauge for neural network:</p>
+
+<ol>
+  <li>
+    <p>Multi-target. Write once, run everywhere(interpreted or compiled).</p>
+  </li>
+  <li>
+    <p>Typechecking with good type annotation.</p>
+  </li>
+  <li>
+    <p>Parallellize with language-level directives</p>
+  </li>
+  <li>
+    <p>Composition(constructing larger systems with building blocks) is easier</p>
+  </li>
+  <li>
+    <p>Ownership system because GC in CUDA is a nightmare</p>
+  </li>
+  <li>
+    <p>No more frustration from deciphering undocumented code written by researchers. The issue is, an overwhelming majority of researchers are not programmers, who care about the aesthetics of clean code and helpful documentation. I get it - people are lazy and unsafe unless the compiler forces them to annotate their code.</p>
+  </li>
+</ol>
+
+<p>I have thought a lot about this. Here is an example snippet of the language I have in mind:</p>
+
+<p>```rust
+use conv::{Conv2d, Dropout2d, maxpool2d};
+use loss::log_softmax;
+use nonlin::relu;
+use lin::Linear;</p>
+
+<p>node Mnist&lt;?,c,h,w -&gt; ?,10&gt;;</p>
+
+<p>weights Mnist {
+    conv1: Conv2d&lt;?,c,hi,wi -&gt; ?,c,ho,wo&gt;::new(in_ch=1, out_ch=10, kernel_size=5),
+    conv2: Conv2d&lt;?,c,hi,wi -&gt; ?,c,ho,wo&gt;::new(in_ch=10, out_ch=20, kernel_size=5),
+    dropout: Dropout2d&lt;?,c,h,w -&gt; ?,c,h,w&gt;::new(p=0.5),
+    fc1: Linear&lt;?,320 -&gt; ?,50&gt;::new(),
+    fc2: Linear&lt;?,50 -&gt; ?,10&gt;::new(),
+}</p>
+
+<p>graph Mnist {
+    fn new() {
+        fc1.init_normal(std=1.);
+        fc2.init_normal(std=1.);
+    }</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>fn forward(self, x) {
+    x
+    |&gt; conv1            |&gt; maxpool2d(kernel_size=2)
+    |&gt; conv2 |&gt; dropout |&gt; maxpool2d(kernel_size=2)
+    |&gt; view(?, 320)
+    |&gt; fc1 |&gt; relu
+    |&gt; self.fc2()
+    |&gt; log_softmax(dim=1)
+}
+
+fn fc2(self, x: &lt;?,50&gt;) -&gt; &lt;?,10&gt;{
+    x |&gt; fc2 |&gt; relu
+} } ```
+</code></pre>
+</div>
+
+<p>As you can see, this is inspired by Rust, PyTorch, Elixir.</p>
+
+<p>Here are some random syntactical ideas:</p>
+
+<ol>
+  <li>
+    <p>Stateful symbols are capitalized</p>
+  </li>
+  <li>
+    <p>Impure functions must be annonated</p>
+  </li>
+  <li>
+    <p>Local variables cannot be shadowed</p>
+  </li>
+  <li>
+    <p>Function args have keyword</p>
+  </li>
+  <li>
+    <p>Be explicit where you can</p>
+  </li>
+  <li>
+    <p>Pipe operator input is first argument of function</p>
+  </li>
+</ol>
+
+<p>However, this will be an extraordinary undertaking <em>IF</em> I decide to implement it.</p>
+
+  </div>
+
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Ricky Han blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>Ricky Han blog</li>
+          <li><a href="mailto:rickyhan+blog@rickyhan.com">rickyhan+blog@rickyhan.com</a></li>
+          <li><a href="https://tinyletter.com/rickyhan">Subscribe</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>Programming demos, tips, thoughts.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

@@ -59,6 +59,8 @@ graph Mnist {
 }
 ```
 
+
+
 As you can see, this is inspired by Rust, PyTorch, Elixir.
 
 Here are some random syntactical ideas:

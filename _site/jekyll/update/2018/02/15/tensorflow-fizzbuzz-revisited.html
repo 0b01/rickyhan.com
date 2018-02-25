@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>Tensorflow FizzBuzz Revisited</title>
-  <meta name="description" content="interviewer: Good morning. You file indicates an application from two years ago but didn’t pass the coding interview.">
+  <meta name="description" content="interviewer: Welcome. You file indicates an application from two years ago but didn’t pass the coding interview.">
 
 
   <!-- Global site tag (gtag.js) - Google Analytics -->
@@ -77,7 +77,7 @@
   </header>
 
   <div class="post-content" itemprop="articleBody">
-    <p><strong>interviewer</strong>: Good morning. You file indicates an application from two years ago but didn’t pass the coding interview.</p>
+    <p><strong>interviewer</strong>: Welcome. You file indicates an application from two years ago but <a href="http://joelgrus.com/2016/05/23/fizz-buzz-in-tensorflow/">didn’t pass the coding interview</a>.</p>
 
 <p><strong>me</strong>: Yes. I had some trouble with FizzBuzz.</p>
 
@@ -218,55 +218,7 @@ g@g:~/Desktop/py2tf⟫ python test.py
 
 <p><strong>interviewer</strong>: Don’t apply again.</p>
 
-<h1 id="conclusion">Conclusion</h1>
-
-<p>On a more serious note, I have been thinking about a framework-agnostic DSL that transpiles to Tensorflow and PyTorch with strong typing, dimension and ownership checking and lots of syntax sugars. This is borne out of frustration: I am so tired of deciphering undocumented code. I get it - people are lazy and unsafe unless the compiler forces them to annotate. At most 4 dimensions! However, this will be an undertaking if I decide to do it.</p>
-
-<p>```rust
-use conv::{Conv2d, Dropout2d, maxpool2d};
-use linear::Linear;
-use loss::log_softmax;
-use relu;</p>
-
-<p>// here are weights that need to be allocated(on CPU or GPU)</p>
-
-<p>declare Mnist&lt;?,c,h,w -&gt; ?,10&gt;;</p>
-
-<p>weights Mnist {
-    conv1: Conv2d&lt;?,c,hi,wi -&gt; ?,c,ho,wo&gt;::new(in_ch=1, out_ch=10, kernel_size=5),
-    conv2: Conv2d&lt;?,c,hi,wi -&gt; ?,c,ho,wo&gt;::new(in_ch=10, out_ch=20, kernel_size=5),
-    dropout: Dropout2d&lt;?,c,h,w -&gt; ?,c,h,w&gt;::new(p=0.5),
-    fc1: Linear&lt;?,320 -&gt; ?,50&gt;::new(),
-    fc2: Linear&lt;?,50 -&gt; ?,10&gt;::new(),
-}</p>
-
-<p>ops Mnist {</p>
-
-<div class="highlighter-rouge"><pre class="highlight"><code>// runs automatically
-op new() {
-    Self::weights()
-    conv1.init_normal();
-    conv2.init_normal();
-}
-
-op forward(x) {
-    x
-    |&gt; conv1            |&gt; maxpool2d(kernel_size=2)
-    |&gt; conv2 |&gt; dropout |&gt; maxpool2d(kernel_size=2)
-    |&gt; view(?, 320)
-    |&gt; fc1 |&gt; relu
-    |&gt; self.fc2
-    |&gt; log_softmax(dim=1)
-}
-
-// impure function, needs annotation
-op fc2(self, x: &lt;?,50&gt;) -&gt; &lt;?,10&gt;{
-    x |&gt; fc2 |&gt; relu
-} }
-</code></pre>
-</div>
-
-<p>```</p>
+<p>Read <a href="http://joelgrus.com/2016/05/23/fizz-buzz-in-tensorflow/">the OG fizzbuzzer</a></p>
 
   </div>
 
