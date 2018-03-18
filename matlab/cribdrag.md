@@ -1,6 +1,5 @@
 ---
 layout: page
-title: Crib Dragging
 permalink: /cribdrag/
 ---
 
