@@ -5,9 +5,9 @@ date:   2018-04-16 00:00:00 -0400
 categories: jekyll update
 ---
 
-Surprisingly few know about the built-in pretty-printer. In the book, there is only a [short passage](https://doc.rust-lang.org/book/second-edition/ch05-02-example-structs.html) that mentioned `{:#?}` in passing.
+Surprisingly few know about the built-in pretty-printer. In the book, there is only a [short passage](https://doc.rust-lang.org/book/second-edition/ch05-02-example-structs.html) that mentions `{:#?}` in passing.
 
-It aligns data structures based on their nested positions and automatically derived with `Debug`. Recently, I'm working with some custom AST. This is the print out for a typed AST:
+It aligns structs and enums based on nested positions and is automatically derived with `Debug`. Recently, I'm working with some custom AST. Here is the print out for `println("{:#?}", typed_ast)`:
 
 ```rust
 TyProgram(
@@ -525,7 +525,7 @@ TyProgram(
 )
 ```
 
-You can `impl Debug` for individual components, for example:
+Also, it is not mutually exclusive with `impl Debug` for individual components, for example:
 
 ```rust
 impl Debug for Type {
