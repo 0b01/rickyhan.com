@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "A Useful Feature Few Rust Programmers Know About"
+title:  "Pretty Printer with `"{:#?}"`: A Useful Feature Few Rust Programmers Know About"
 date:   2018-04-16 00:00:00 -0400
 categories: jekyll update
 ---
