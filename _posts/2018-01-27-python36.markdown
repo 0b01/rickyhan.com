@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "How to use async generator in python3.6 to process streaming data"
+title:  "How to Use Async Generator in Python 3.6 to Process Streaming Data"
 date:   2018-01-27 00:00:00 -0400
 categories: jekyll update
 ---
