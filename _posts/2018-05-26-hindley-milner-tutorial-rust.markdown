@@ -434,6 +434,6 @@ However, I am interning at a prop trading shop this summer so chances are tensor
 
 # Conclusion
 
-[This video](https://www.youtube.com/watch?v=oPVTNxiMcSU) goes over concepts and implements a type inference engine for a reduced set of ML in Scala. Very helpful! Highly recommended!
+[This video](https://www.youtube.com/watch?v=oPVTNxiMcSU) goes over concepts and implements a type inference engine for a reduced set of ML in Scala. Very helpful! Highly recommend!
 
 In this blog post, I demonstrated how to write a type inference engine for a langauge. If you find this post useful, consider subscribing to my mailing list!
