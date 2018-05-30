@@ -5,15 +5,15 @@ date:   2018-05-26 00:00:00 -0400
 categories: jekyll update
 ---
 
-Type-inferred gradually typed languages are a joy to use: easy to write, analyze, and refactor. In this blog post, I will showcase to the other dozen of programmers who are interested in the obscure art of programming language type inference.
+Type inference is useful in statically and gradually typed langauges which are easier to write, maintain and refactor. However, the concept and implementation of type inference elude many. In this blog post, I will go over the type inference engine in my current project TensorScript to the dozen programmers who are interested in the obscure art of type reconstruction.
 
 # Type Inference
 
-In the compilation process, type reconstruction happens after the AST has been constructed - that is, after lexing and parsing. The goal is to traverse and type the AST to produce a Typed AST or throw if the program is not well-typed. Type reconstruction may be further divided into type inference and type checking, although the boundary is usually blurred in practice.
+In the compiler pipeline, typing happens after lexing/parsing. The goal is to produce "typed AST" where each node is tagged with a concrete type. The compiler throws otherwise(if the program is not well-typed). Type reconstruction may be further divided into type inference and type checking, although the boundary is usually blurred in practice.
 
 # Hindley-Milner(HM)
 
-HM is a classical type inference algorithm and can be extended in various ways. The idea is very intuitive. As an example, given following statement.
+HM is a classical type inference algorithm and can be extended in various ways to suit different needs(parametric types, lifetimes, scopes, etc.). The idea, demonstrated below, is *very* intuitive. As an example, given the following program.
 
 ```rust
 if isEven(2) {
@@ -26,22 +26,22 @@ if isEven(2) {
 We can infer the following:
 
 1. `is_even` returns a boolean value
-2. `a` and `b` must have the same type
+2. `a` and `b` have the same type
 
-HM and other constraint based type inference algorithm does the same thing in 3 steps:
+Constraint solver algorithm such as HM uses a 3-step process to figure out the above:
 
-1. Annotate with "dummy" types
-2. Collect constraints
-3. Unification
+1. Annotate with "dummy" types known as *type variables*
+2. Collect constraint set
+3. Unify(solve) constraints
 
-Concretely, for the above example, first annotate the variables `a b c` with "type variables" placeholders which can just be intergers. The AST is now typed:
+Concretely, for the above example, first annotate the variables with integer placeholders.
 
 ```
-    if is_even(2: '0) { a: '1 } else { b: '2 }
-        where is_even: '3 -> '4
+if is_even(2: '0) { a: '1 } else { b: '2 }
+    where is_even: '3 -> '4
 ```
 
-In another pass of the AST, we can collect the constraints based on context. In essense, we write down a system of equations: `'0` is integer, return type of `'4` must be bool, `'1` and `'2` must be the same type:
+The second pass is constraint collection. Based on context, we can make assumptions about the program. The idea is similar to system of equations: `'0` is integer, return type of `'4` is bool, `'1` and `'2` must be the same type:
 
 ```
 '0 = int
@@ -50,7 +50,7 @@ In another pass of the AST, we can collect the constraints based on context. In 
 '4 = bool
 ```
 
-Given the equivalence relations, we can apply unify the constraints which is really just gauss-jordan elimination to put the types in row reduced echelon form. If we know that a type variable is equal to a concrete type, replace every occurence of the type variable in the constraint set until the constraint set is empty. So in the end, the unifier yields a set of substitions that maps type variables to concrete types.
+Given the system of equivalences, we can now unify the constraints, which is similar to gauss-jordan elimination to rref the types. The algorithm behaves like this: take the head of the constraint set, if it's solved(type var = concrete type, e.g. `'0 = bool`), replace every occurence of the type variable in the tail. So the unifier yields a set of substitutions that maps type variables to concrete types.
 
 ```
 '4 -> bool
@@ -58,150 +58,149 @@ Given the equivalence relations, we can apply unify the constraints which is rea
 '3 -> int
 ```
 
-And finally, we can use the substitution set to replace the type variables in the annotated AST to get a concretely typed AST.
+And finally, we can take the substitution set, replace the type variables in the annotated AST and get a concretely typed AST.
 
-# Code example
+# Code sample
 
-The function `unify` first finds 1 substitution with the first item in the constraint set and applies the substitution to the tail of the constraint set.
+The function `unify` looks for 1 substitution with the head of the constraint set and applies the substitution to the tail of the constraint set.
 
 ```rust
-    fn unify(&mut self, cs: Constraints) -> Substitution {
-        if cs.is_empty() {
-            Substitution::empty()
-        } else {
-            let emitter = cs.emitter.clone();
-            let tenv = cs.tenv.clone();
-            let mut it = cs.set.into_iter();
-            let mut subst = self.unify_one(it.next().unwrap());
-            let subst_tail = subst.apply(&Constraints {set: it.collect(), emitter, tenv});
-            let subst_tail: Substitution = self.unify(subst_tail);
-            subst.compose(subst_tail)
-        }
+fn unify(&mut self, cs: Constraints) -> Substitution {
+    if cs.is_empty() {
+        Substitution::empty()
+    } else {
+        let emitter = cs.emitter.clone();
+        let tenv = cs.tenv.clone();
+        let mut it = cs.set.into_iter();
+        let mut subst = self.unify_one(it.next().unwrap());
+        let subst_tail = subst.apply(&Constraints {set: it.collect(), emitter, tenv});
+        let subst_tail: Substitution = self.unify(subst_tail);
+        subst.compose(subst_tail)
     }
+}
 ```
 
-The function `unify_one` pattern against against possible types and seeks to replace type variables with concrete types.
+The function `unify_one` pattern matches against types.
 
 ```rust
-    fn unify_one(&mut self, eq: Equals) -> Substitution {
-        use self::Type::*;
-        let emitter = Rc::clone(&self.emitter);
-        let tenv = Rc::clone(&self.tenv);
-        match eq {
-            Equals(Unit(_), Unit(_)) => Substitution::empty(),
-            Equals(INT(_), INT(_)) => Substitution::empty(),
-            Equals(FLOAT(_), FLOAT(_)) => Substitution::empty(),
-            Equals(BOOL(_), BOOL(_)) => Substitution::empty(),
-            Equals(INT(_), ResolvedDim(_, _)) => Substitution::empty(),
-            Equals(ResolvedDim(_, _), INT(_)) => Substitution::empty(),
-            Equals(a @ ResolvedDim(_, _), b @ ResolvedDim(_, _)) => {
-                if a.as_num() == b.as_num() {
-                    Substitution::empty()
-                } else {
-                    // self.add_err(TensorScriptDiagnostic::DimensionMismatch(a.clone(), b.clone()));
-                    // error!()
-                    Substitution::empty()
-                }
+fn unify_one(&mut self, eq: Equals) -> Substitution {
+    use self::Type::*;
+    let emitter = Rc::clone(&self.emitter);
+    let tenv = Rc::clone(&self.tenv);
+    match eq {
+        Equals(Unit(_), Unit(_)) => Substitution::empty(),
+        Equals(INT(_), INT(_)) => Substitution::empty(),
+        Equals(FLOAT(_), FLOAT(_)) => Substitution::empty(),
+        Equals(BOOL(_), BOOL(_)) => Substitution::empty(),
+        Equals(INT(_), ResolvedDim(_, _)) => Substitution::empty(),
+        Equals(ResolvedDim(_, _), INT(_)) => Substitution::empty(),
+        Equals(a @ ResolvedDim(_, _), b @ ResolvedDim(_, _)) => {
+            if a.as_num() == b.as_num() {
+                Substitution::empty()
+            } else {
+                // self.add_err(TensorScriptDiagnostic::DimensionMismatch(a.clone(), b.clone()));
+                // error!()
+                Substitution::empty()
             }
-            Equals(VAR(tvar, _), ty) => self.unify_var(tvar, ty),
-            Equals(ty, VAR(tvar, _)) => self.unify_var(tvar, ty),
-            Equals(DIM(tvar, _), ty) => self.unify_var(tvar, ty),
-            Equals(ty, DIM(tvar, _)) => self.unify_var(tvar, ty),
-            Equals(FnArgs(v1, _), FnArgs(v2, _)) => self.unify(
-                Constraints {
-                    set: v1.into_iter().zip(v2).map(|(i, j)| Equals(i, j)).collect(),
-                    emitter,
-                    tenv,
-                },
-            ),
-            Equals(FnArg(Some(a), ty1, _), FnArg(Some(b), ty2, _)) => {
-                if a == b {
-                    self.unify(
-                        Constraints {
-                            set: btreeset!{ Equals(*ty1, *ty2)},
-                            emitter,
-                            tenv,
-                        },
-                        )
-                } else {
-                    panic!("supplied parameter is incorrect! {} != {}", a, b);
-                }
-            }
-            Equals(FUN(m1,n1,p1, r1, _), FUN(m2,n2,p2, r2, _)) => {
-                if n1 == n2 {
-                    self.unify(
-                        Constraints{
-                            set: btreeset!{
-                                Equals(*p1, *p2),
-                                Equals(*r1, *r2),
-                            },
-                            emitter,
-                            tenv,
-                        },
-                    )
-                } else {
-                    println!("{} {} {} {}", m1, m2, n1, n2);
-                    panic!()
-                }
+        }
+        Equals(VAR(tvar, _), ty) => self.unify_var(tvar, ty),
+        Equals(ty, VAR(tvar, _)) => self.unify_var(tvar, ty),
+        Equals(DIM(tvar, _), ty) => self.unify_var(tvar, ty),
+        Equals(ty, DIM(tvar, _)) => self.unify_var(tvar, ty),
+        Equals(FnArgs(v1, _), FnArgs(v2, _)) => self.unify(
+            Constraints {
+                set: v1.into_iter().zip(v2).map(|(i, j)| Equals(i, j)).collect(),
+                emitter,
+                tenv,
             },
-            Equals(Tuple(vs1, _), Tuple(vs2, _)) => self.unify(
-                Constraints {
-                    set: vs1.into_iter().zip(vs2).map(|(i,j)| Equals(i,j)).collect(),
-                    emitter,
-                    tenv,
-                },
-            ),
-            Equals(ts1 @ TSR(_, _), ts2 @ TSR(_, _)) => {
-                if ts1.as_rank() == ts2.as_rank() {
-                    match (ts1, ts2) {
-                        (TSR(dims1, s1), TSR(dims2, s2)) => self.unify(
-                            Constraints {
-                                set: dims1
-                                    .into_iter()
-                                    .zip(dims2)
-                                    .map(|(i, j)| Equals(i.with_span(&s1), j.with_span(&s2)))
-                                    .collect(),
-                                emitter,
-                                tenv,
-                            },
-                        ),
-                        _ => unimplemented!(),
-                    }
-                } else {
-                    // self.add_err(TensorScriptDiagnostic::RankMismatch(ts1, ts2));
-                    // error!
-                    Substitution::empty()
+        ),
+        Equals(FnArg(Some(a), ty1, _), FnArg(Some(b), ty2, _)) => {
+            if a == b {
+                self.unify(
+                    Constraints {
+                        set: btreeset!{ Equals(*ty1, *ty2)},
+                        emitter,
+                        tenv,
+                    },
+                    )
+            } else {
+                panic!("supplied parameter is incorrect! {} != {}", a, b);
+            }
+        }
+        Equals(FUN(m1,n1,p1, r1, _), FUN(m2,n2,p2, r2, _)) => {
+            if n1 == n2 {
+                self.unify(
+                    Constraints{
+                        set: btreeset!{
+                            Equals(*p1, *p2),
+                            Equals(*r1, *r2),
+                        },
+                        emitter,
+                        tenv,
+                    },
+                )
+            } else {
+                println!("{} {} {} {}", m1, m2, n1, n2);
+                panic!()
+            }
+        },
+        Equals(Tuple(vs1, _), Tuple(vs2, _)) => self.unify(
+            Constraints {
+                set: vs1.into_iter().zip(vs2).map(|(i,j)| Equals(i,j)).collect(),
+                emitter,
+                tenv,
+            },
+        ),
+        Equals(ts1 @ TSR(_, _), ts2 @ TSR(_, _)) => {
+            if ts1.as_rank() == ts2.as_rank() {
+                match (ts1, ts2) {
+                    (TSR(dims1, s1), TSR(dims2, s2)) => self.unify(
+                        Constraints {
+                            set: dims1
+                                .into_iter()
+                                .zip(dims2)
+                                .map(|(i, j)| Equals(i.with_span(&s1), j.with_span(&s2)))
+                                .collect(),
+                            emitter,
+                            tenv,
+                        },
+                    ),
+                    _ => unimplemented!(),
                 }
+            } else {
+                // self.add_err(TensorScriptDiagnostic::RankMismatch(ts1, ts2));
+                // error!
+                Substitution::empty()
             }
-            _ => {
-                panic!("{:#?}", eq);
-            }
+        }
+        _ => {
+            panic!("{:#?}", eq);
         }
     }
-    fn unify_var(&mut self, tvar: TypeId, ty: Type) -> Substitution {
-        use self::Type::*;
-        let span = CSpan::fresh_span();
-        match ty.clone() {
-            VAR(tvar2, _) => {
-                if tvar == tvar2 {
-                    Substitution::empty()
-                } else {
-                    Substitution(btreemap!{ VAR(tvar, span) => ty })
-                }
-            }
-            DIM(tvar2, _) => {
-                if tvar == tvar2 {
-                    Substitution::empty()
-                } else {
-                    Substitution(btreemap!{ VAR(tvar, span) => ty })
-                }
-            }
-            _ => if occurs(tvar, &ty) {
-                panic!("circular type")
+}
+fn unify_var(&mut self, tvar: TypeId, ty: Type) -> Substitution {
+    use self::Type::*;
+    let span = CSpan::fresh_span();
+    match ty.clone() {
+        VAR(tvar2, _) => {
+            if tvar == tvar2 {
+                Substitution::empty()
             } else {
                 Substitution(btreemap!{ VAR(tvar, span) => ty })
-            },
+            }
         }
+        DIM(tvar2, _) => {
+            if tvar == tvar2 {
+                Substitution::empty()
+            } else {
+                Substitution(btreemap!{ VAR(tvar, span) => ty })
+            }
+        }
+        _ => if occurs(tvar, &ty) {
+            panic!("circular type")
+        } else {
+            Substitution(btreemap!{ VAR(tvar, span) => ty })
+        },
     }
 }
 ```
@@ -219,7 +218,7 @@ fn occurs(tvar: TypeId, ty: &Type) -> bool {
 }
 ```
 
-Finally, substitution is just a wrapper around a map.
+The `Substitution` struct is just a wrapper around a map.
 
 ```rust
 #[derive(Debug, PartialEq)]
@@ -317,16 +316,20 @@ fn substitute_tvar(ty: Type, tvar: &TypeId, replacement: &Type) -> Type {
 }
 ```
 
-
 # What are dependent types?
 
-Recently, I started working on a language that brings the static type experience to ML(Machine Learning, not the language) which is dominated by Python. Neural network is an important domain and warrants its own DSL. 
+TensorScript brings static types to ML(Machine Learning, not the language) which is dominated by Python. I believe neural network is an important application and warrants its own DSL - rationale is explained in a previous blog post. The gist is tensor shapes are checked during compile time.
 
-If you have used Java, C# or any other languages that support generic programming, you have seen `Vec<T>` where `T` is some type `int`, `complex`, or even `Vec<T>`. Now imagine this: what if `T` refers to something else, say a number, denote `Vec<N>` as a vector that contains N elements: `Vec<1> v1 = {0}; Vec<2> v2 = {1, 2};` etc. What would happen? First thing is that there cannot be intermediate states - everything has to be immutably initialized and vector length cannot change over the course of program execution. The programming model fits nicely with neural networks. By dependently typed, I actually meant dimensioned tensor types such as `Tensor<[?,1,3,3]>` so far from the sophistication Idris, LiquidHaskell and the other research languages. For ML(Machine Learning), where tensors and tensor operations are the core abstration, dependent types are immensely useful.
+If you have used Java, C# or any other languages that support generic programming, you've seen `Vec<T>` where `T` can be `int`, `complex`, or `Vec<T>` etc. Now what if `T` is a number? `Vec<3>` is a vector that contains 3 elements. In modern C++, array takes a number as type parameter(`array<int,3> myarray {10,20,30};`). The consequence is that there is no intermediate states - everything has to be immutably initialized and vector length stays the same in static lifetime. This model fits nicely with neural networks. For ML(Machine Learning), where tensor(and tensor operation) is the core abstration, dependent types(or dimensioned types) are immensely useful.
 
-To add rudimentary type level computation, I simply used modified the generic HM algorithm. For every neural network operation, I supply all the necessary information such as the shape of tensors that's coming and out to a resolver which returns the type if enough information is supplied, otherwise it'll return None. So running HM iteratively on the AST, type information "flows" to the operations and the AST gets resolved gradually. The annotate-collect-unify-replace loop breaks when the AST anneals.
+To add type level computation over tensor dimensions, I simply modified generic HM algorithm. For every Op(convolution, relu, etc..), information(such as the input and ouput shapes, initialization of the op) is supplied to a resolver. Now two things may occur: 
 
-Here is the shape computation for `maxpool2d`.
+1. the resolver returns the type. If enough information is supplied to make out the Op type
+2. return None. Say, when input type is a type variable
+
+The modified HM runs many times on the AST, each time typing a little bit more as type information "flows" to the ops and the AST gets resolved gradually. The annotate-collect-unify-replace loop breaks when the AST anneals(stops changing) to borrow a term from integer programming.
+
+As an example of the resolver, Here is `maxpool2d`.
 
 ```rust
 impl Resolve for maxpool2d {
@@ -375,16 +378,16 @@ impl Resolve for maxpool2d {
                         )
                     ))
                 }
-            },
-            _ => None,
+            }
+            _ => None
         }
     }
 }
 ```
 
-# Type Environement and Scopes
+# Type Environment (and Scoping)
 
-As shown above, a type variable is a number. Type environment is used to increment the counter. Another major use of type environment is keeping track of variables and their corresponding types in local scopes. A type environement consists of a stack. During the annotation stage, when entering a new scope, a new Scope struct is pushed onto the stack, and when leaving a scope, the popped scope is "recycled" into a queue(FIFO) which is used during the next pass, constraint collection.
+As mentioned above, type variables are just numbers. Type environment(denoted as the uppercase gamma(Γ) in PL literature), among other things, keeps track of type variable counter, variables and corresponding types in different scopes. In my use case, during the annotation stage, when entering a new scope, a new `Scope` is pushed onto a stack, and when leaving a scope, the popped scope is "recycled" into a queue. This way, during the constraint collection stage, the scopes environments are reused.
 
 ```rust
 /// Represents a single level of scope
@@ -393,10 +396,11 @@ pub struct Scope {
     types: BTreeMap<Alias, Type>,
 }
 type ScopeStack = VecDeque<Scope>;
+type ScopeQueue = VecDeque<Scope>;
 pub struct TypeEnv {
     counter: TypeId,
     current_mod: ModName,
-    modules: BTreeMap<ModName, (ScopeStack, ScopeStack, InitMap)>,
+    modules: BTreeMap<ModName, (ScopeStack, ScopeQueue, InitMap)>,
 }
 impl TypeEnv {
     // ...omitted...
@@ -405,13 +409,13 @@ impl TypeEnv {
         let stack = self.modules.get_mut(mod_name).unwrap();
         stack.0.push_back(Scope::new());
     }
-    /// during constraint collection, push the popped scopes into queue
+    /// push the popped scopes into queue
     pub fn push_scope_collection(&mut self, mod_name: &ModName) {
         let stack = self.modules.get_mut(mod_name).unwrap();
         let scp = stack.1.pop_front().unwrap();
         stack.0.push_back(scp);
     }
-    /// exit a block 
+    /// exit a block
     pub fn pop_scope(&mut self, mod_name: &ModName) {
         let stack = self.modules.get_mut(mod_name).unwrap();
         let popped = stack.0.pop_back().unwrap();
@@ -421,6 +425,18 @@ impl TypeEnv {
 }
 ```
 
+# Development update
+
+Recently, I got sidetracked and decided to lift the type level computation to language level (or at least proc macro level) to no avail. In the future, I want to:
+
+1. support most PyTorch operations
+
+2. write quickstart tutorials
+
+3. implement codegen for TensorFlow and mxnet
+
+However, I am interning at a prop trading shop this summer so chances are tensorscript development will slow down(to a halt?) and will pick up pace this coming September.
+
 # Conclusion
 
-TensorScript is pretty straightforward to implement. Recently I got sidetracked and tried to lift the type level computation to language level(or at least proc macro level) but it is hopeless. I am still working on the language. I want to add support for all the operation in PyTorch, write some quickstart tutorials, implement codegen for TensorFlow and mxnet. I'll be interning at a prop trading firm for the next 3 months so chances are the work on TensorScript will be on pause until September.
+In this blog post, I demonstrated how to write a type inference engine for a langauge. If you find this post useful please consider subscribing to my mailing list.
