@@ -128,21 +128,16 @@ fn unify_one(&mut self, eq: Equals) -> Substitution {
             }
         }
         Equals(FUN(m1,n1,p1, r1, _), FUN(m2,n2,p2, r2, _)) => {
-            if n1 == n2 {
-                self.unify(
-                    Constraints{
-                        set: btreeset!{
-                            Equals(*p1, *p2),
-                            Equals(*r1, *r2),
-                        },
-                        emitter,
-                        tenv,
+            self.unify(
+                Constraints{
+                    set: btreeset!{
+                        Equals(*p1, *p2),
+                        Equals(*r1, *r2),
                     },
-                )
-            } else {
-                println!("{} {} {} {}", m1, m2, n1, n2);
-                panic!()
-            }
+                    emitter,
+                    tenv,
+                },
+            )
         },
         Equals(Tuple(vs1, _), Tuple(vs2, _)) => self.unify(
             Constraints {
@@ -387,7 +382,7 @@ impl Resolve for maxpool2d {
 
 # Type Environment (and Scoping)
 
-As mentioned above, type variables are just numbers. Type environment(denoted as the uppercase gamma(Γ) in PL literature), among other things, keeps track of type variable counter, variables and corresponding types in different scopes. In my use case, during the annotation stage, when entering a new scope, a new `Scope` is pushed onto a stack, and when leaving a scope, the popped scope is "recycled" into a queue. This way, during the constraint collection stage, the scopes environments are reused.
+As mentioned above, type variables are just numbers. Type environment(denoted as the uppercase gamma(Γ) in PL literature, ![](https://wikimedia.org/api/rest_v1/media/math/render/svg/4c96ef28327313f53f6deb407cd795c885e4be57)), among other things, keeps track of type variable counter, variables and corresponding types in different scopes. In my use case, during the annotation stage, when entering a new scope, a new `Scope` is pushed onto a stack, and when leaving a scope, the popped scope is "recycled" into a queue. This way, during the constraint collection stage, the scopes environments are reused.
 
 ```rust
 /// Represents a single level of scope
@@ -439,4 +434,6 @@ However, I am interning at a prop trading shop this summer so chances are tensor
 
 # Conclusion
 
-In this blog post, I demonstrated how to write a type inference engine for a langauge. If you find this post useful please consider subscribing to my mailing list.
+[This video](https://www.youtube.com/watch?v=oPVTNxiMcSU) goes over concepts and implements a type inference engine for a reduced set of ML in Scala. Very helpful! Highly recommended!
+
+In this blog post, I demonstrated how to write a type inference engine for a langauge. If you find this post useful, consider subscribing to my mailing list!
