@@ -7,7 +7,7 @@ categories: jekyll update
 
 # WebAssembly Kernel / Subsystem
 
-A WebAssembly kernel or subsystem is a really good idea for reasons best explained in [this talk](https://www.destroyallsoftware.com/talks/the-birth-and-death-of-javascript). The talk is from 2014 but more exigent than ever - wasm microkernels are already gaining traction.
+WebAssembly kernel or subsystem is a good idea for reasons best explained in [this talk](https://www.destroyallsoftware.com/talks/the-birth-and-death-of-javascript). It is from 2014 but more exigent than ever - wasm microkernels are already gaining traction.
 
 JavaScript is a bad language and people had to use it - resulting in tremendous ingenuities in tooling: one such tool is compiling other languages to asm.js(the precursor to WebAssembly) and, one thing led to another, WebAssembly was standardized. The wasm microkernel(putting some userland stuff back into kernel) is a great idea for several reasons:
 
