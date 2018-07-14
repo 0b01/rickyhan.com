@@ -66,30 +66,33 @@ From the perspective of one node:
 |
 v
 A -> B
-A sends raw seed without any encryption.
+A intends to send a measurement request packet -> B -> C -> A.
+
+forward_addr = addr(C)
+forward_payload = encrypt(Cseed, Cpub)
+send(encrypt(Bseed + forward_addr + forward_payload, Bpub), B)
+
 -----------------------
      |
      v
 A -> B -> A
-B sends hash so A can verify that B has indeed received seed
+send(Bseed, A)
 A -> B -> C
-B hashes raw seed with its public key and sends to C
+send(encrypt(Cseed, Cpub), C)
 
-hash(seed + Bpub)
 -----------------------
           |
           v
 A -> B -> C -> A
-C hashes the received message with C' public key and
-C doesn't know the seed so unable to reproduce the hash
+send(Cseed, A)
 -----------------------
                |
                v
 A -> B -> C -> A
 
-hash(hash(seed, Bpub), Cpub)
 ```
 
+Note: B has an incentive to forward to C because latency is measured with edges.
 
 Each node will have its own measurements and will try to reach consensus based on its own calculations of pairwise latency.
 
