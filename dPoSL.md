@@ -1,3 +1,9 @@
+---
+layout: page
+title: (DO NOT SHARE) Delegated Proof of Stakeholder Latency (dPoSL)
+permalink: /dPoSL/
+---
+
 # Delegated Proof of Stakeholder Latency (dPoSL)
 
 The greatest challenge of blockchains today is scalability. In any fault tolerant consensus protocol, there is a fundamental tradeoff between throughput(tx/sec), scale(number of participating nodes) and latency(time to finality). The position of a blockchain on this tradeoff triangle depends on the usecase, and mainly developer's predisposition. This post deals with incentivizing low latency at the expense of decentralization and bandwidth throughput. My day job at a prop shop deals extensively with time synchronization and latency measurement in a distributed network topology so the topic has been on my mind recently.
