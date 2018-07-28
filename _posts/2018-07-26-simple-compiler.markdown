@@ -75,7 +75,7 @@ class ProtocolNode(Node):
     def __init__(self, proto):
         self.proto = proto
     def __repr__(self):
-        return "%s" % self.proto
+        return self.proto
 class UdpNode(ProtocolNode):
     def __init__(self):
         super(UdpNode, self).__init__("udp")
@@ -92,7 +92,7 @@ class WhenNode(Node):
         self.then_node = then_node
         self.else_node = else_node
     def __repr__(self):
-        return "(if (%s) {%s} else {%s})" % (self.cond, self.then_node, self.else_node)
+        return "(if (%s) (%s) else (%s))" % (self.cond, self.then_node, self.else_node)
 def when(cond, then_node, else_node):
     return WhenNode(cond, then_node, else_node)
 
