@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Simple BPF Bytecode Compiler in Python"
+title:  "Writing a Simple Compiler from Scratch"
 date:   2018-07-26 00:00:00 -0400
 categories: jekyll update
 ---
