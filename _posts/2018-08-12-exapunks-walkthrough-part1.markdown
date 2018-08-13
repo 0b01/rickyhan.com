@@ -44,6 +44,15 @@ LINK 800
 
 Instead of saving the output of the ALU instructions to X register, just output to the final register F.
 
+```
+LINK 800
+GRAB 200
+ADDI F F X
+MULI X F X
+SUBI X F F
+LINK 800
+```
+
 ![0](/static/exapunks/1.jpg)
 
 # Technique 2: Unroll Loops
@@ -54,8 +63,7 @@ This has nothing to do with SIMD. The goal is to minimize branch penalty. The id
 
 ## Example 1:
 
-This is the tutorial puzzle where you write n down to 0. Here is an optimized version. Cycle count for this is 146 while the top percentile is 138 so I need to pack an additional line in the body. If you see it let me know!
-
+This is the tutorial puzzle where you write n down to 0. Here is an optimized version.
 
 ```
 LINK 800
@@ -81,6 +89,26 @@ MODI -1 X X
 COPY X F
 @end
 ```
+
+> Note:
+>
+>     @rep 13
+>     SUBI X @{1,1} F
+>     @end
+>
+> expands to
+>
+>     SUBI X 1 F
+>     SUBI X 2 F
+>     SUBI X 3 F
+>     SUBI X 4 F
+>     SUBI X 5 F
+>     SUBI X 6 F
+>     SUBI X 7 F
+>     ...
+>     SUBI X 13 F
+
+Basically, you pack the loop as tightly as you can(13 items) and then handle the remainder(12 items).
 
 ## Example 2, highway sign:
 
