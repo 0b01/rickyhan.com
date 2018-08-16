@@ -5,13 +5,21 @@ date:   2018-08-15 00:00:00 -0400
 categories: jekyll update
 ---
 
-Neural ALU(NALU) is a very neat idea. It enables numeracy for neural nets. Contrary to popular belief, neural nets aren't capable of counting. If you train a net on adding two values between 0 and 10, it won't be able to extrapolate beyond that range. The NAC basically uses a differentiable function that outputs 0, -1 or 1, thus making the concept of addition and subtraction trainable. The beauty also lies in the simplicity of the idea: `tanh(m) * sigmoid(w)` is the differential function. If you think about it: tanh is -1 or 1, sigmoid is 0 or 1 so the product of two would be one of 0, 1, -1.
+The recent Deepmind's Neural Arithmetic Logic Unit(NALU) is a very neat idea. It is a simple module that enables numeracy for neural nets. Contrary to popular belief, neural nets are not very good at arithmetic and counting(if at all). If you train an adder network between 0 and 10, it will do okay if you give it 3 + 5 but won't be able to extrapolate and will fail miserably for 1000 + 3000. Similarly, if the net is trained to count up to 10, it won't be able to count to 20. The NALU is able to track time, perform arithmetic, translate numerical language into scalars, execute computer code, and count objects in images.
+
+The central idea behind Neural ALU is a differentiable function that outputs 0, -1 or 1, rendering the concept of addition and subtraction trainable. The beauty also lies in the simplicity of the formula: `tanh(m) * sigmoid(w)` made of fundamental building blocks. If you think about it: tanh is -1 or 1, sigmoid is 0 or 1 so the product of two would be one of 0, 1, -1.
 
 Here is the plot of the function:
 
 ![plot](https://i.imgur.com/aUgTdse.png)
 
-It's an extremely basic idea made of fundamental building blocks but has profound implications to machine learning by enabling numeracy. A lot of tasks (essentially counting tasks) have become tractable.
+This image shows what the NAC looks like:
+
+![](https://cdn-images-1.medium.com/freeze/max/1000/1*vMYerlUvUP5gw4LDZv-aSg.png?q=20)
+
+NALU is just NAC cast into log space and back with a learned gate:
+
+![](https://cdn-images-1.medium.com/freeze/max/1000/1*bvnoKqd1bvhbUJOI7Jm4GA.png?q=20)
 
 The cost function is
 
@@ -68,7 +76,7 @@ for i in range(1000000):
 
 You should see the neural net converge immediately.
 
-Here is same toy network implemented in x86(with SSE) just for fun:
+Here is same toy NALU implemented in x86(with SSE!) that uses real ALUs:
 
 ```nasm
 ; Neural ALU implementation in x86_64
@@ -346,3 +354,9 @@ Epoch           l0                  l1
 900000          0.997100144072      -0.997097107772
 950000          0.997177851616      -0.99717492668
 ```
+
+# Source
+
+- Neural Accumulator(NAC) Source: arXiv:1808.00508 [cs.NE]
+
+- [image source](https://www.reddit.com/r/MachineLearning/comments/94833t/neural_arithmetic_logic_units/)
