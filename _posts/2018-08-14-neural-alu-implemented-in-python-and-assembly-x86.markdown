@@ -13,6 +13,18 @@ Here is the plot of the function:
 
 It's an extremely basic idea made of fundamental building blocks but has profound implications to machine learning by enabling numeracy. A lot of tasks (essentially counting tasks) have become tractable.
 
+The cost function is
+
+    0.5 * (y_hat - y) ** 2
+
+so the partial derivative `dJ/dm_0` is
+
+    dJ/dm_0 = (y_hat - y) * dy_hat/dm_0
+            = (y_hat - y) * d(x0 * tanh(m_0) * sigmoid(w_0))/dm_0
+            = (y_hat - y) * x0 * dtanh(m_0) * sigmoid(w_0)
+
+Here is a runnable NAC toy example implemented in python:
+
 ```python
 from random import random
 import math
@@ -54,9 +66,9 @@ for i in range(1000000):
         print i, l0, l1
 ```
 
+You should see the neural net converge immediately.
 
-
-Here is the network implemented in x86 just for fun:
+Here is same toy network implemented in x86(with SSE) just for fun:
 
 ```x86
 ; Neural ALU implementation in x86_64
@@ -307,4 +319,30 @@ rand:
     fild dword [rand_seed]             ; load RandSeed as an integer
     fidiv dword [rand_max]             ; div by max int value (absolute) = eax / (-2^31)
     ret
+```
+
+If you run this, the first `tanh * sigmoid` goes to 1 and second one go to -1.
+
+```
+Epoch           l0                  l1
+0               0.0                 0.0
+50000           0.987506901824      -0.987548950867
+100000          0.991264033674      -0.991189817923
+150000          0.992845113954      -0.992861588357
+200000          0.993821244128      -0.993813140853
+250000          0.994479531604      -0.994470005826
+300000          0.994956870738      -0.994965214447
+350000          0.995335580972      -0.995335751094
+400000          0.995641550629      -0.995639510579
+450000          0.99588903762       -0.995888041575
+500000          0.996102719885      -0.996098271471
+550000          0.996282859485      -0.996286010814
+600000          0.996444518075      -0.996441767134
+650000          0.996583070776      -0.996582158171
+700000          0.996711963875      -0.99670336452
+750000          0.996820796932      -0.996818826574
+800000          0.996921023282      -0.9969240341
+850000          0.997012684359      -0.997014549213
+900000          0.997100144072      -0.997097107772
+950000          0.997177851616      -0.99717492668
 ```
