@@ -31,52 +31,7 @@ so the partial derivative `dJ/dm_0` is
             = (y_hat - y) * d(x0 * tanh(m_0) * sigmoid(w_0))/dm_0
             = (y_hat - y) * x0 * dtanh(m_0) * sigmoid(w_0)
 
-Here is a runnable NAC toy example implemented in python:
-
-```python
-from random import random
-import math
-
-def tanh(x):
-    return math.tanh(x)
-
-def dtanh(x):
-    return 1. - math.tanh(x) ** 2
-
-def sigmoid(x):
-    return 1 / (1 + math.exp(-x))
-
-def dsigmoid(x):
-    return sigmoid(x)*(1-sigmoid(x))
-
-m0 = m1 = w0 = w1 = 0.0
-
-for i in range(1000000):
-    x0 = random()
-    x1 = random()
-    y = x0 - x1
-
-    # forward pass
-    l0 = tanh(m0) * sigmoid(w0)
-    l1 = tanh(m1) * sigmoid(w1)
-    y_h = l0 * x0 + l1 * x1
-
-    # calculate error
-    e = y_h - y
-
-    # backpropagation
-    m0 -= e * x0 * sigmoid(w0) * dtanh(m0)
-    m1 -= e * x1 * sigmoid(w1) * dtanh(m1)
-    w0 -= e * x0 * dsigmoid(w0) * tanh(m0)
-    w1 -= e * x1 * dsigmoid(w1) * tanh(m1)
-
-    if not i % 50000:
-        print i, l0, l1
-```
-
-You should see the neural net converge immediately.
-
-Here is same toy NALU implemented in x86(with SSE!) that uses real ALUs:
+Here is a toy NALU implemented in x86(with SSE!) that uses real Intel FPU ALUs.
 
 ```nasm
 ; Neural ALU implementation in x86_64
@@ -133,6 +88,7 @@ main:
     call rand
     fstp dword [xs+4]
 
+.tanhs_and_sigmoids:
     ;; first calculate tanhs and put those in tanhs
     finit
     fld dword [m_hats]
@@ -153,7 +109,7 @@ main:
     call sigmoid
     fstp dword [sigms+4]
 
-.forward:
+.forward_pass:
     movdqu xmm0, [tanhs]        ; move 128 bits
     movdqu xmm1, [sigms]
     movq xmm2, [xs]             ; move 64 bits
@@ -354,6 +310,52 @@ Epoch           l0                  l1
 900000          0.997100144072      -0.997097107772
 950000          0.997177851616      -0.99717492668
 ```
+
+Here is a runnable NAC toy example implemented in python:
+
+```python
+from random import random
+import math
+
+def tanh(x):
+    return math.tanh(x)
+
+def dtanh(x):
+    return 1. - math.tanh(x) ** 2
+
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))
+
+def dsigmoid(x):
+    return sigmoid(x)*(1-sigmoid(x))
+
+m0 = m1 = w0 = w1 = 0.0
+
+for i in range(1000000):
+    x0 = random()
+    x1 = random()
+    y = x0 - x1
+
+    # forward pass
+    l0 = tanh(m0) * sigmoid(w0)
+    l1 = tanh(m1) * sigmoid(w1)
+    y_h = l0 * x0 + l1 * x1
+
+    # calculate error
+    e = y_h - y
+
+    # backpropagation
+    m0 -= e * x0 * sigmoid(w0) * dtanh(m0)
+    m1 -= e * x1 * sigmoid(w1) * dtanh(m1)
+    w0 -= e * x0 * dsigmoid(w0) * tanh(m0)
+    w1 -= e * x1 * dsigmoid(w1) * tanh(m1)
+
+    if not i % 50000:
+        print i, l0, l1
+```
+
+You should see the neural net converge immediately.
+
 
 # Source
 
