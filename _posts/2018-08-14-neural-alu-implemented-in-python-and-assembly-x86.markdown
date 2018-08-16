@@ -70,7 +70,7 @@ You should see the neural net converge immediately.
 
 Here is same toy network implemented in x86(with SSE) just for fun:
 
-```x86
+```nasm
 ; Neural ALU implementation in x86_64
 ;
 ; 	nasm -felf64 nalu.s
