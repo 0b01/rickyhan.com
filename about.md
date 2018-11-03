@@ -5,8 +5,8 @@ menu: main
 permalink: /about/
 ---
 
-I am a software developer with experience in programming. I am studying machine learning, functional programming and compiler development.
+I am a software developer with experience in programming. I'm interested in trading systems, machine learning, functional programming and compiler development.
 
-Here I will post some projects I find interesting.
+I will be interning at Microsoft(Redmond) next summer. Previously, I interned at SIG.
 
-[Download my PGP public key](/rickyhan.key)
+Download my [public key](/rickyhan.key)

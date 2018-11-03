@@ -362,3 +362,4 @@ You should see the neural net converge immediately.
 - Neural Accumulator(NAC) Source: arXiv:1808.00508 [cs.NE]
 
 - [image source](https://www.reddit.com/r/MachineLearning/comments/94833t/neural_arithmetic_logic_units/)
+
