@@ -499,11 +499,17 @@ Module.STDWEB_PRIVATE.acquire_tmp = function( dummy ) {
             "__extjs_03ce4f271785393ffb189d0b51ea19f34efd9224": function($0, $1, $2, $3) {
                 $1 = Module.STDWEB_PRIVATE.to_js($1);$2 = Module.STDWEB_PRIVATE.to_js($2);$3 = Module.STDWEB_PRIVATE.to_js($3);Module.STDWEB_PRIVATE.from_js($0, (function(){($1). bindBuffer (($2), ($3));})());
             },
+            "__extjs_0aced9e2351ced72f1ff99645a129132b16c0d3c": function($0) {
+                var value = Module.STDWEB_PRIVATE.get_raw_value( $0 );return Module.STDWEB_PRIVATE.register_raw_value( value );
+            },
             "__extjs_0de7bb64d46dd8aa7f4a1dfaa48e76d0a49e0856": function($0, $1) {
                 $1 = Module.STDWEB_PRIVATE.to_js($1);Module.STDWEB_PRIVATE.from_js($0, (function(){return ($1). index ;})());
             },
             "__extjs_0e54fd9c163fcf648ce0a395fde4500fd167a40b": function($0) {
                 var r = Module.STDWEB_PRIVATE.acquire_js_reference( $0 );return (r instanceof DOMException) && (r.name === "InvalidCharacterError");
+            },
+            "__extjs_0ebe4a91498a6d959525f2165da035403f916c77": function($0, $1) {
+                $1 = Module.STDWEB_PRIVATE.to_js($1);Module.STDWEB_PRIVATE.from_js($0, (function(){($1). cloneNode (). play ();})());
             },
             "__extjs_10f5aa3985855124ab83b21d4e9f7297eb496508": function($0) {
                 var o = Module.STDWEB_PRIVATE.acquire_js_reference( $0 );return (o instanceof Array) | 0;
@@ -700,6 +706,9 @@ Module.STDWEB_PRIVATE.acquire_tmp = function( dummy ) {
             "__extjs_9d64a695070c583ca1db88f92170810d90b0bb4c": function($0) {
                 var o = Module.STDWEB_PRIVATE.acquire_js_reference( $0 );return (o instanceof KeyboardEvent && o.type === "keydown") | 0;
             },
+            "__extjs_9d93ee8df1ed6dcecc0c58116415b126bbcb72a7": function($0, $1) {
+                $1 = Module.STDWEB_PRIVATE.to_js($1);Module.STDWEB_PRIVATE.from_js($0, (function(){return ($1). readyState})());
+            },
             "__extjs_9ee32ab7ea5a467e8025a545105872e2055ca3fd": function($0) {
                 Module.STDWEB_PRIVATE.from_js($0, (function(){return Array.from (navigator.getGamepads ());})());
             },
@@ -742,6 +751,9 @@ Module.STDWEB_PRIVATE.acquire_tmp = function( dummy ) {
             "__extjs_af3effddc96f458c769850da74e1d1d923ab8d40": function($0, $1, $2) {
                 $1 = Module.STDWEB_PRIVATE.to_js($1);$2 = Module.STDWEB_PRIVATE.to_js($2);Module.STDWEB_PRIVATE.from_js($0, (function(){($1). useProgram (($2));})());
             },
+            "__extjs_b16a5cb9cc241495e9917178eacbdd894ef9a489": function($0, $1) {
+                $1 = Module.STDWEB_PRIVATE.to_js($1);Module.STDWEB_PRIVATE.from_js($0, (function(){const audio = new Audio (($1)); audio.hasError = false ; audio.onerror = (error)=> audio.hasError = true ; return audio ;})());
+            },
             "__extjs_b5279855d56d8dbb2124ea9f036133d0f76408de": function($0) {
                 var o = Module.STDWEB_PRIVATE.acquire_js_reference( $0 );return (o instanceof FocusEvent && o.type === "focus") | 0;
             },
@@ -780,6 +792,9 @@ Module.STDWEB_PRIVATE.acquire_tmp = function( dummy ) {
             },
             "__extjs_d14b662b4ead6bc6b2991a965bfc809d242b62c3": function($0, $1, $2) {
                 $1 = Module.STDWEB_PRIVATE.to_js($1);$2 = Module.STDWEB_PRIVATE.to_js($2);Module.STDWEB_PRIVATE.from_js($0, (function(){($1). linkProgram (($2));})());
+            },
+            "__extjs_d2507fa3eeddcf796a08bdd1bec33a2ee989309a": function($0, $1) {
+                $1 = Module.STDWEB_PRIVATE.to_js($1);Module.STDWEB_PRIVATE.from_js($0, (function(){return ($1). hasError})());
             },
             "__extjs_d3a449492a1f92bb689edccf2aacd868ad253fc0": function($0) {
                 var o = Module.STDWEB_PRIVATE.acquire_js_reference( $0 );return (o instanceof Gamepad) | 0;
