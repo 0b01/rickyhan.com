@@ -25,17 +25,16 @@ if( typeof Rust === "undefined" ) {
             var wasm_instance = new WebAssembly.Instance( mod, instance.imports );
             return instance.initialize( wasm_instance );
         } else {
-            var file = fetch( "catering.wasm", {credentials: "same-origin"} )
+            var file = fetch( "/static/foodgame/catering.wasm", {credentials: "same-origin"} )
                 .then( function( response ) { return response.arrayBuffer(); } )
                 .then( function( bytes ) { return WebAssembly.compile( bytes ); } )
                 .then( function( mod ) { return WebAssembly.instantiate( mod, instance.imports ) } )
                 .then( function( wasm_instance ) {
                     var exports = instance.initialize( wasm_instance );
-                    console.log( "Finished loading Rust wasm module 'poker_trainer'" );
                     return exports;
                 })
                 .catch( function( error ) {
-                    console.log( "Error loading Rust wasm module 'poker_trainer':", error );
+                    console.log( "Error loading Rust wasm module 'catering':", error );
                     throw error;
                 });
         }
@@ -842,7 +841,7 @@ Module.STDWEB_PRIVATE.acquire_tmp = function( dummy ) {
             Object.defineProperty( Module, 'web_free', { value: Module.instance.exports.__web_free } );
             Object.defineProperty( Module, 'web_table', { value: Module.instance.exports.__web_table } );
 
-
+            
             __web_on_grow();
             Module.instance.exports.main();
 
