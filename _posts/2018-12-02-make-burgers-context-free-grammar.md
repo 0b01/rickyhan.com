@@ -12,13 +12,15 @@ Put your CS skills to good use and craft burgers.
 
 This past weekend I made a game for Ludum Dare 43. Tools used: [Aseprite](http://aseprite.org), [quicksilver](https://github.com/ryanisaacg/quicksilver). Inspired by Zachtronics.
 
-Everything is written in Rust(~2000 loc) and compiled to WebAssembly. Checkout the [source code](https://github.com/rickyhan/dyn-grammar).
+It is written in Rust and compiled to WebAssembly. Checkout the [source code](https://github.com/rickyhan/dyn-grammar).
 
 # How the game is implemented
 
-The core of the game is an pretty standard LL(1) parser whose grammar is defined dynamically in game by player.
+The core of the game is a pretty standard LL(1) parser whose grammar is defined dynamically in game by player.
 
 ```rust
+type RuleID = usize;
+
 struct Grammar<T: Debug + Clone + PartialEq + Hash + Eq> {
     start: String,
     rules: Vec<Rule<T>>,
@@ -27,7 +29,7 @@ struct Grammar<T: Debug + Clone + PartialEq + Hash + Eq> {
 
 struct Rule<T: Debug + Clone + PartialEq + Hash + Eq> {
     name: String,
-    id: usize,
+    id: RuleID,
     production: Vec<Token<T>>,
 }
 
@@ -38,13 +40,9 @@ enum Token<T: Debug + Clone + PartialEq + Hash + Eq> {
 }
 ```
 
-Note the rule has an `id` field so the the production is traceable, i.e. which path the parser takes.
-
-The parser takes in a grammar and a vector of burger tokens and returns a parse tree.
+Note the rule has an `id` field so the the parse result is traceable, i.e. which paths the parser took.
 
 ```rust
-type RuleID = usize;
-
 enum AbstractBurgerTree<T: Debug + Clone + PartialEq + Hash + Eq> {
     NonTerm((RuleID, Vec<Box<AbstractBurgerTree<T>>>)),
     Term(Token<T>),
@@ -54,7 +52,6 @@ enum AbstractBurgerTree<T: Debug + Clone + PartialEq + Hash + Eq> {
     Cyclic,
     AdditionalTokens(Box<AbstractBurgerTree<T>>),
 }
-
 ```
 
 The parser errors are also valid AST elements.
