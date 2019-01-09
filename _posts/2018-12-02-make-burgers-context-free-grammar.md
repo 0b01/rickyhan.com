@@ -8,7 +8,7 @@ categories: jekyll update
 
 Put your CS skills to good use and craft burgers.
 
-<iframe src="http://rickyhan.com/static/foodgame/index.html" style="border:0px #ffffff none;" name="myiFrame" scrolling="no" frameborder="1" marginheight="0px" marginwidth="0px" height="600px" width="800px" allowfullscreen></iframe>
+<iframe src="/static/mcrecursion/index.html" style="border:0px #ffffff none;" name="myiFrame" scrolling="no" frameborder="1" marginheight="0px" marginwidth="0px" height="600px" width="800px" allowfullscreen></iframe>
 
 This past weekend I made a game for Ludum Dare 43. Tools used: [Aseprite](http://aseprite.org), [quicksilver](https://github.com/ryanisaacg/quicksilver). Inspired by Zachtronics.
 
