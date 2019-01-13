@@ -8,7 +8,7 @@ categories: jekyll update
 
 This post is a demo of the vector tool in my pixel art editor tool Xprite.
 
-<div style="background: azure;">
+<div>
 <style>
     #canvas {
         cursor: none;
