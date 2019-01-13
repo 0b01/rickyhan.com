@@ -10,6 +10,8 @@ categories: jekyll update
 
 ![pixel perfect](/static/pixelart/pixelperfect.svg)
 
+![](https://i.imgur.com/H9sqW5P.png)
+
 Every decent pixel art program has it: Graphics Gale, Aseprite, Hexels. It is a simple loop that checks every pixel and filters it out if it's part of an L-shape.
 
 ```rust
