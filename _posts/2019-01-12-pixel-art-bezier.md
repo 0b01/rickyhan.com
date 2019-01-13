@@ -35,8 +35,49 @@ Press `b` for pencil. Press`v` for vector. `F5` to clear canvas.
 
 5. Rasterize by sampling. I use [indexset](https://docs.rs/indexmap/1.0.2/indexmap/) to store continuous lines. Dedupe takes O(1) time.
 
-6. Optimize. Each pixel in the rasterized line is scored by the distance from its center to the smooth curve.
+6. Optimize pixel selection cost. Each pixel in the rasterized line is scored by distance from center to the smooth curve. The goal is to minimize total cost. However, this step is not used since this problem in NP and I'm not sure how to speed up(or if it's even possible).
 
-7. Pixel perfect. From a previous [post](http://rickyhan.com/jekyll/update/2018/11/22/pixel-art-algorithm-pixel-perfect.html).
+7. [Pixel perfect](http://rickyhan.com/jekyll/update/2018/11/22/pixel-art-algorithm-pixel-perfect.html). As an alternative to step 6, removing intermediate pixels actually works pretty well.
 
-8. Finally. Sort monotonic segments by slope.
+8. Finally. Sort monotonic segments by slope. See my previous post on this.
+
+## Current Roadmap:
+
+### Milestones
+
+1. Finding the right abstractions
+* [x] Canvas
+* [x] Renderer
+* [x] Layer
+
+1. Core functionalities
+* [x] Hotkeys
+* [x] Save
+* [x] Load
+* [x] Python Scripting
+* [x] JavaScript Scripting
+* [x] Palette
+
+1. Basic tools (Release target)
+* [x] Pencil
+* [x] Line
+* [x] Color Picker
+* [x] Paint Bucket
+* [x] Eraser
+* [x] Shapes - Rect
+* [x] Shapes - Circle
+* [ ] Vector tools
+* [ ] Select/Marquee
+* [ ] Pattern Brush
+* [x] Texture Synthesis(wave function collapse)
+
+1. Layers
+* [ ] Layer groups
+
+1. Animation
+* [ ] Celluloid
+* [ ] Preview window
+
+2. Web UI
+
+1. Collaborative edit
