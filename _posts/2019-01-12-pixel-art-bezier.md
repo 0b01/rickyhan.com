@@ -23,6 +23,8 @@ This post is a demo of the vector tool in my pixel art editor tool Xprite.
 
 Press `b` for pencil. Press`v` for vector. `F5` to clear canvas.
 
+![this is from quickhoney(not made by me)](https://quickhoney.com/image/PT_TheWynn/double,3)
+
 ## The algorithm
 
 1. Store cursor positions as a polyline(a vector of coordinates).
