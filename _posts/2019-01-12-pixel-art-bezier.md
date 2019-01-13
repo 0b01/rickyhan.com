@@ -31,7 +31,7 @@ Press `b` for pencil. Press`v` for vector. `F5` to clear canvas.
 
 3. Interpolate. Convert the simplified polyline into a vector of cubic bezier curves. I used an implementation from d3.
 
-4. Segment each bezier curve to monotone subcurves. The pixel sorting algorithm(from previous post) only works with monotone curves. This is done by solving cubic equation for `t` to find extrema.
+4. Segment each bezier curve to monotonic subcurves. The pixel sorting algorithm(from previous post) only works with monotonically increasing or decreasing curves whose first and second derivatives don't change sign. This is done by solving quadratic and cubic bezier equation for `t` to find extrema.
 
 5. Rasterize by sampling. I use [indexset](https://docs.rs/indexmap/1.0.2/indexmap/) to store continuous lines. Dedupe takes O(1) time.
 
