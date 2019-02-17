@@ -6,6 +6,8 @@ date:   2019-01-12 00:37:02 -0400
 categories: jekyll update
 ---
 
+![gif](/static/crabs/gif.gif)
+
 Help your crab beat up all the other crabs at the beach by programming assembly. Don't forget you only move sideways. Read the manual below to proceed.
 
 ## <a href="/static/crabs/index.html" target="_blank">Play Now</a>
