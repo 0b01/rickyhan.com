@@ -112,3 +112,5 @@ Press `Esc` or `C-c` to stop debugger.
 ## Future improvements
 
 The game is surprisingly fun and in the future I would like to add mechanics such as boss fights, object detection, fork/join (similar to REPL in Exapunks).
+
+[Source code](https://github.com/rickyhan/crabs)
