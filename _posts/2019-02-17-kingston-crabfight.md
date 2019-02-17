@@ -64,9 +64,11 @@ ADD A A
 SUB 1 M
 ```
 
-* `NEG reg`: Negates value in register
+* `NEG reg`: Negates value in register.
 
-    NEG M
+```
+NEG M
+```
 
 * `NOP` No operation. Also known as noop
 
