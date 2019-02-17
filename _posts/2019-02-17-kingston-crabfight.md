@@ -22,9 +22,9 @@ Theme music:
 
 There are 5 registers `AMVHR`:
 
-* `A`:  Deneral purpose accumulator. Default argument for some op codes as documented below.
+* `A`: General purpose accumulator. Default argument for some op codes as documented below.
 
-* `M`: Motor control. Your crab can only crawl sideways. M controls its movement. If it's positive, then it moves to the right and vice versa. Note: movement is only actuated for every cycle after M register has been set positive.
+* `M`: Motor control. Your crab can only crawl sideways. M controls its movement. If it's positive, then it moves to the right and vice versa. Note: movement is only actuated for every cycle after M register has been set.
 
 ```
 MOV 1 M     ; no movement
@@ -36,7 +36,7 @@ MOV -10 M   ; stands still
 NOP         ; moves 1 to the left
 ```
 
-* `V`, `H`:  General purpose accumulator. Originally intended for object detection which was too complicated.
+* `V`, `H`:  General purpose register. Originally intended for object detection
 
 * `R`: Rotation mod 4. Note: 0 is down, increments clockwise.
 
@@ -117,4 +117,5 @@ Press `Esc` or `C-c` to stop debugger.
 
 The game is surprisingly fun and in the future I would like to add mechanics such as boss fights, object detection, fork/join (similar to REPL in Exapunks).
 
-[Source code](https://github.com/rickyhan/crabs)
+[Link to source code](https://github.com/rickyhan/crabs)
+
