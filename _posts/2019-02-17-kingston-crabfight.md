@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Kingston Crabfighting: Assembly Puzzler"
+title:  "Kingston Crabfighting: Assembly Puzzle"
 date:   2019-02-17 00:37:02 -0400
 # menu: main
 categories: jekyll update
