@@ -40,7 +40,7 @@ NOP         ; moves 1 to the left
 
 * `V`, `H`:  General purpose register. Originally intended for object detection
 
-* `R`: Rotation mod 4. Note: 0 is down, increments clockwise.
+* `R`: Rotation mod 4. Note: 0 is down, increments clockwise. This register is readonly but can be indirectly changed via `RCC` and `RCW` instructions.
 
 ## Instructions
 
