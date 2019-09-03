@@ -31,7 +31,6 @@ Note: The direction is used to keep track of the coloring orientation: i.e. all 
 /// selectively anti-alias a pixel perfect line
 /// each segment of length l contains floor(l*k) number of $alt_color pixels
 pub fn selective_antialias(path: &mut Pixels, k: f64, alt_color: Color) {
-    let p0 = path.0.get_index(0).unwrap();
     let mut chunks = vec![];
     let mut start_idx = 0;
     for (i, (pi,pj)) in path.iter().zip(path.iter().skip(1)).enumerate() {
