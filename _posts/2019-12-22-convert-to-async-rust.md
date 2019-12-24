@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Weird Tricks to Detect Blocking in Async Rust"
+title:  "Weird Methods to Detect Blocking in Async Rust"
 date:   2019-12-22 00:00:00 -0400
 # menu: main
 categories: jekyll update
@@ -16,7 +16,7 @@ Tasks need to voluntarily yield control back to the scheduling thread 1) periodi
 
 In this model, long running or blocking calls cause starvation and defeat the entire purpose of async - the worst possible scenario that can happen.
 
-### Long running computation
+# Long running computation
 
 ```rust
 async fn foo(n: u64) {
@@ -45,7 +45,7 @@ async fn foo(n: u64) {
 }
 ```
 
-### Blocking calls that you can't change
+# Blocking calls that you can't change
 
 Long running or blocking sync functions written by others that you can't strategically insert yield_now.
 
@@ -67,7 +67,7 @@ task::spawn_blocking(|| {
 }).await;
 ```
 
-## Resource leak from `Future`s that never complete
+# Resource leak from `Future`s that never complete
 
 A long-running application could leak resources in the form of [unexpectedly long-lived allocations](https://blog.nelhage.com/post/three-kinds-of-leaks/). Assuming you are not doing anything obviously wrong, this is usually caused by some `Future` that never completes. And without you knowing, the runtime keeps holding onto the `Future` until the program gets killed by the kernel. This is usually in the realm of unknown unknown where "it sometimes breaks" functions cause all sorts of weird bugs that are impossible to avoid completely, but there are debugging techniques to find them in your async program.
 
@@ -93,31 +93,31 @@ future::timeout(
 
 By wrapping the Future with an immediate timeout, this future gets turned into a fire-and-forget and guarantees deallocation.
 
-## General debugging tips
+# General debugging tips
 
 1. Avoid `futures::channel::mpsc::unbounded()`
 
-Unbounded channel means that the consumer queue is unbounded so it can potentially cause unexpected memory leaks. So if you notice weird memory usage, you should immediately switch to the bounded channel `futures::channel::mpsc::channel(buffer: usize)` and set a small buffer size ~1. Chances are execution will halt and then you know somewhere in the consumer task is a future blocking the scheduler.
+    Unbounded channel means that the consumer queue is unbounded so it can potentially cause unexpected memory leaks. So if you notice weird memory usage, you should immediately switch to the bounded channel `futures::channel::mpsc::channel(buffer: usize)` and set a small buffer size ~1. Chances are execution will halt and then you know somewhere in the consumer task is a future blocking the scheduler.
 
 2. Avoid `std::sync`
 
-First thing you should do in async conversion is changing the locks to use `futures_locks` or concurrency primitives in your runtime crate. Otherwise you will find strange blocks and panics.
+    First thing you should do in async conversion is changing the locks to use `futures_locks` or concurrency primitives in your runtime crate. Otherwise you will find strange blocks and panics.
 
 3. Wrap some `Future` with `future::timeout`
 
-The downside is that future based timeouts do not work when there's an infinite loops.
+    The downside is that future based timeouts do not work when there's an infinite loops.
 
 4. Put `dbg!(());` around every await to trace the missing line
 
-This should be the last resort.
+    This should be the last resort.
 
 # Conclusion
 
-Due to the nature of the Halting problem, it is the programmer's responsibility to ensure that the code in async context doesn't block. Accidentally blocking in async code is a mistake that's very easy and common to make and very hard to detect. In this post I presented several ways to reduce the surface area of accidentally making this mistake and also ways to debug accidentally blocking code.
+Due to the nature of the Halting problem, it is the programmer's responsibility to ensure that the code in async context doesn't block. Accidentally blocking in async code is a mistake that's common to make and very hard to detect. In this post I presented several ways to reduce the surface area of accidentally making this mistake and also ways to debug accidentally blocking code.
 
-## Further Reading
+# Further Reading
 
-https://stjepang.github.io/2019/12/04/blocking-inside-async-code.html
+[stejpang's blog post on blocking inside async code](https://stjepang.github.io/2019/12/04/blocking-inside-async-code.html)
 
-https://www.reddit.com/r/rust/comments/ebpzqx/do_not_stop_worrying_about_blocking_in_async/
+[reddit post discussing async-std's new blocking detection feature](https://www.reddit.com/r/rust/comments/ebpzqx/do_not_stop_worrying_about_blocking_in_async/)
 
