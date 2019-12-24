@@ -18,7 +18,7 @@ In the past, I worked on strategies whose inputs are based on OHLC candles, but 
 
 # The first simulator: Poisson Process
 
-Avellaneda-Stoikov model of orderflow intensity is used to model fill probability. This is technically not a microstructure simulator but does work as a simulator for backtests. The model is based on market dynamics and requires 2 parameters that can be estimated using tick data.
+Avellaneda-Stoikov's model of orderflow intensity is used to estimate probability of execution. It doesn't simulate microstructure but works for backtests. The model is based on market dynamics and requires 2 parameters that can be estimated using tick data.
 
 The idea is: arrival rate of MOs matching posted depth $$\delta$$ at time $$t$$ iis modeled by a Poisson Process with intensity
 
@@ -60,7 +60,7 @@ I was able to achieve great results with this approach. Here are some example ex
 ![](/static/market-simulation/2-62.jpg)
 ![](/static/market-simulation/2-66.jpg)
 
-The downside of this approach is that market impact is not taken into account. However, at this time, my strategies are dumb so I don't need more sophisticated simulators for backtests.
+The downside of this approach is: market impact not being taken into account. At this time, my strategies are dumb so I don't need more sophisticated simulators just yet.
 
 # The third simulation: Queue-Reactive Model
 
