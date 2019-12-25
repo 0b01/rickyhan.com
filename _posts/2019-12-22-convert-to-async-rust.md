@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Weird Methods to Detect Blocking in Async Rust"
+title:  "How to Detect Accidental Blocking Code in Async Rust"
 date:   2019-12-22 00:00:00 -0400
 # menu: main
 categories: jekyll update
