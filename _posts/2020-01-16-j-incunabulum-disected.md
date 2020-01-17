@@ -67,7 +67,7 @@ The J incunabulum interprets a subset of the J language.
 
 1. Single char variable names
 2. Single digit numbers
-3. Limited operations
+3. Limited set of verbs
 
 |       | `+`  | `{`  | `~`                   | `<` | `#` | `,` |
 |-------|------|------|-----------------------|-----|-----|-----|
@@ -145,7 +145,7 @@ The J incunabulum interprets a subset of the J language.
 # How to build
 
 ```
-$ make
+$ gcc -O0 -g -std=c89 -fsanitize=address -fsanitize=undefined ji.c -o ji
 $ rlwrap ./ji # readline wrap utility
 ```
 
@@ -179,7 +179,7 @@ allocates an `struct a` for `3`, runs `iota` the noun and stores the result to p
 
 > **Note:** This interpreter uses punning between `I` and `A` since the pointer size is equal to long long on a 64-bit system.
 
-These are the functions related to shape calculation and memory manipulation for `struct a`:
+These are the procedures related to shape calculation and memory manipulation for `struct a`:
 
 `mv` is memmove.
 
@@ -310,7 +310,7 @@ A(*vd[])()={0,plus,from,find,0,rsh,cat},
  (*vm[])()={0,id,size,iota,box,sha,0};
 ```
 
-At index 1, the plus symbol can be interpreted as either `+3` the monadic `id` function or `1+3` the dyadic `plus` function.
+At index 1, the plus symbol can be interpreted as either `+3` the monadic `id` verb or `1+3` the dyadic `plus` verb.
 
 The code for `ex` is:
 
@@ -323,7 +323,7 @@ A ex(e) I *e;
             R st[a - 'a'] = ex(e + 2);  // ex(rhs) and cache
         a = st[a - 'a'];                // fetch from storage
     }
-    R qv(a) ?                           // is it verb(function)?
+    R qv(a) ?                           // is it verb?
         (*vm[a])(ex(e + 1))             // run monad on ex(rest)
         :
         e[1] ?                          // is the next char defined
@@ -340,7 +340,7 @@ The idea is that verbs operate on `struct A` which can be a pronoun or a noun.
 
 # pr
 
-To understand this print function, you will have to understand the data structure of `struct a`.
+To understand this, you will have to understand the data structure of `struct a`.
 
 ```c
 pr(w) A w;
@@ -355,5 +355,7 @@ pr(w) A w;
   nl();
 }
 ```
+
+# Conclusion
 
 Since the [`find` verb](https://code.jsoftware.com/wiki/Vocabulary/ecapdot) is not implemented, here is the [implementation](https://github.com/jsoftware/jsource/blob/01da2f88a44d65fc65a96b4eebe342cf88361ac8/jsrc/v1.c#L191) for J.
