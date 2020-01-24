@@ -11,33 +11,33 @@ Please add me on LinkedIn and checkout my code on GitHub.
 
 Download my [public key](/rickyhan.key)
 
-I will use textsynth.org to generate the rest.
+I will use textsynth.org to generate the rest:
 
-I want:
-
-
-a) An interactive text synthesis engine based on the Haskell programming language with a focus on Haskell bindings and other Haskell-related software libraries. The code will be written in Haskell and be used as an input source to the engine. I will use my knowledge and experience in Haskell to develop the engine in Haskell.
-
-b) A library of Haskell bindings or other Haskell-related software libraries.
-
-c) A collection of Haskell libraries.
-
-d) A collection of Haskell libraries that work as Haskell services, and that can be run as a Haskell service that provides a RESTful interface.
+I am interested in technology, programming, and computer security. I've used Python at work and I'm comfortable using a programming language as the primary means of communication, but I am also willing to learn other languages as they become available.
 
 
-e) A library for creating interactive Haskell services.
+I have experience with C++, Python, JavaScript, HTML5, CSS3, PHP, ASP.NET, Jquery, jQuery, Bootstrap, Angular, React, and Angular2. I am more interested in working on a large project that needs to be able handle large amounts of data.
 
 
-Focuses are: (1) the development of Haskell bindings or other Haskell-oriented software libraries and (2) development of a Haskell-based, RESTful, Haskell service that provides a RESTful interface, and that has a Haskell backend.
+In general I am a person that likes to have fun, and is passionate about using technology as efficiently as possible. I enjoy working with people and would like to learn new programming languages. I appreciate a positive work environment, and I would prefer to work remotely. I value the ability to work across multiple teams in a high-energy, creative, and collaborative environment.
 
 
-My first step will be to create the Haskell bindings, and then develop the code in Haskell. I'm not trying to develop a whole system. I'm mainly interested in producing an engine that can serve as a starting point for building other solutions.
+I also enjoy spending time with my family and the outdoors, including cycling, swimming, hiking, and camping. I believe in being able to do things without feeling like I'm being judged, and feel comfortable working in a team environment. I love solving challenging problems in the real world, and would like to develop an interest for solving challenging problems for the Internet.
 
 
-The code should be reasonably small because I'm not going to put in a lot of effort in it. It does not have to be a production project that gets used in production. It's mostly intended to be a starting block for future ideas.
+I believe in a fair and transparent process for decisions as well as fair and transparent feedback from the people we are developing software for.
 
 
-The Haskell engine should be able to serve a RESTful interface for the service and provide a Haskell backend that works with the RESTful interface. The engine should also be able to serve other services. If you don't know about Haskell, I'd suggest reading this tutorial: http://www.youtube.com/watch?v=jDYx5zQ2w6w .
+I am happy to meet with potential co-workers and discuss how I can best solve their problems.
 
 
-This is my first project for the new language Haskell, and I'm very interested in getting the hang of it.
+The best places for me are:
+
+
+Portland : Oregon
+
+New York : New York
+
+Seattle : WA
+
+San Francisco Bay Area : CA
