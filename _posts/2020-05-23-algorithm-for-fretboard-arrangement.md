@@ -19,7 +19,7 @@ The main motivation behind this was my obsession with learning obscure reggae ba
 
 Here are the stages of the pipeline:
 
-1. **[Stem](https://en.wikipedia.org/wiki/Stem_mixing_and_mastering) separation **. This step produces a wav file of bass stem only without other instruments using [Spleeter](https://github.com/deezer/spleeter).
+1. **[Stem](https://en.wikipedia.org/wiki/Stem_mixing_and_mastering) separation**. This step produces a wav file of bass stem only without other instruments using [Spleeter](https://github.com/deezer/spleeter).
 
 2. **Raise pitch by 1 octave** using `sox $in $out pitch 1200 bass -30 100 gain 10`. This step raises the original track by 12 semitones and removes some overtones.
 
