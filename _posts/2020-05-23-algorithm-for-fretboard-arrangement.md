@@ -13,7 +13,7 @@ Over the past weekend, I hacked together a pipeline to automatically transcribe 
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/_OeHVuvUeE8" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-The main motivation behind this was my obsession with learning obscure reggae basslines from old Jamaican music. After I stumbled across a Hacker News post on [Spleeter](https://news.ycombinator.com/item?id=23228539) a couple days ago, I decided to build a prototype and it turned out to be a huge success.
+The main motivation behind this was my obsession with learning obscure reggae basslines from old Jamaican music. After stumbling upon a Hacker News post on [Spleeter](https://news.ycombinator.com/item?id=23228539) a couple days ago, I decided to build a prototype and it turned out to be a huge success.
 
 ## The Pipeline
 
