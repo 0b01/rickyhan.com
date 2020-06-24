@@ -8,9 +8,7 @@ categories: jekyll update
 
 I came across [this video](https://www.youtube.com/watch?v=vtN4tkvcBMA) of a basketball back board that is curved in a way so "you can't miss". I decided to reproduce this result in 2D using JAX and backpropagation. The idea is very simple: shoot lots of balls, simulate elastic collision, calculate distance from hoop and backpropagate the loss into the board shape. I'm not well versed on phsyical optimization but pretty sure this has been done many times before(BFGS?).
 
-<div>
-    <iframe src="https://www.desmos.com/calculator/uz1fyxvvbt?embed" width="500px" height="500px" style="border: 1px solid #ccc" frameborder=0></iframe>
-</div>
+<iframe src="https://www.desmos.com/calculator/uz1fyxvvbt?embed" width="500px" height="500px" style="border: 1px solid #ccc" frameborder="0"></iframe>
 
 ## JAX
 
