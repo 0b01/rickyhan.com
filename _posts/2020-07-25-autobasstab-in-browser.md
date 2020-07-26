@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "AutoBassTab Web"
+title:  "AutoBassTab in Browser"
 date:   2020-07-25 00:00:00 -0400
 categories: jekyll update
 ---
@@ -16,7 +16,7 @@ Here's what I did:
 3. Set up frontend based on spleeter-web.
 4. All the expensive operations are run in WebWorker.
 
-Note the website version does not make use of spleeter for two reason:
+Note the website version does not make use of spleeter for two reasons:
 
 1. Spleeter uses stft operations that tfjs doesn't support
 2. Accuracy is similar to simply applying a lowpass filter
