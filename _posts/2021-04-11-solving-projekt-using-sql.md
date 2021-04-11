@@ -55,11 +55,11 @@ Minimal solution:
 ```sql
 SELECT x, y, z FROM (
     SELECT x, y, z,
-    COUNT() OVER (PARTITION BY x,z) AS ny,
-    COUNT() OVER (PARTITION BY x,y) AS nz,
-    ROW_NUMBER() OVER (PARTITION BY x,z) AS iy,
-    ROW_NUMBER() OVER (PARTITION BY x,y) AS iz
+    COUNT() OVER (PARTITION BY x,z) AS nz,
+    COUNT() OVER (PARTITION BY x,y) AS ny,
+    ROW_NUMBER() OVER (PARTITION BY x,z) AS iz,
+    ROW_NUMBER() OVER (PARTITION BY x,y) AS iy
     FROM xy JOIN xz USING(x)
 )
-WHERE (iz-1) % ny == (iy-1) % nz; -- ROW_NUMBER() is 1-indexed
+WHERE (iy-1) % nz == (iz-1) % ny; -- ROW_NUMBER() is 1-indexed
 ```
