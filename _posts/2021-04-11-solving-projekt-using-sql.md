@@ -11,7 +11,7 @@ Today I came across [this blog post](https://github.com/frankmcsherry/blog/blob/
 
 I bought the game but the puzzles are way too simple. I got bored about ~20 puzzles in so I decided to reimplement the algorithm in SQL instead:
 
-Maximal version:
+# Maximal Solution
 
 ```sql
 WITH xy(x, y) AS (
@@ -52,7 +52,7 @@ SELECT x, y, z FROM xy NATURAL JOIN xz;
 ```
 This query returns the maximal solution(all the matching cubes) by building up all the (x,y,z) when x matches using JOIN.
 
-# Minimal solution:
+# Minimal Solution
 ```sql
 SELECT x, y, z FROM (
     SELECT x, y, z,
