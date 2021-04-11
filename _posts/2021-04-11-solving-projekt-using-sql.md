@@ -1,11 +1,11 @@
 ---
 layout: post
-title:  "Solving PROJEKT Using SQL"
+title:  "Solving .projekt Using SQL"
 date:   2021-04-11 00:00:00 -0400
 categories: jekyll update
 ---
 
-Today I came across [this blog post](https://github.com/frankmcsherry/blog/blob/master/posts/2018-12-30.md) on solving a 3D projection puzzle called PROJEKT.
+Today I came across [this blog post](https://github.com/frankmcsherry/blog/blob/master/posts/2018-12-30.md) on solving a 3D projection puzzle called .projekt.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/kWmbdk0pT1s" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
