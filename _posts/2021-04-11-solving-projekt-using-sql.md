@@ -64,4 +64,4 @@ SELECT x, y, z FROM (
 )
 WHERE (iy-1) % nz == (iz-1) % ny; -- ROW_NUMBER() is 1-indexed
 ```
-This solution returns the minimal solution by "ZIP JOIN"ing two cyclic groups partitioned by y and z. First, they are matched pairwise 1-1, 2-2, 3-3 etc.. Then the extra ones are wrapped around to the first element in the other list. This is achieved by using index % count of the other list thanks to the nature of quotient groups. Note the row_number() window function is 1-indexed.
+This solution returns the minimal solution by "ZIP JOIN"ing two cyclic groups partitioned by y and z. First, they are matched pairwise 1-1, 2-2, 3-3 etc.. Then the extra ones from the longer list are wrapped around to the first elements in the shorter list. This can be achieved by index mod length thanks to quotient groups. Note the row_number() window function is 1-indexed so I have to subtract 1.
