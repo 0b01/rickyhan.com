@@ -51,47 +51,15 @@ xz(x, z) AS (
 SELECT x, y, z FROM xy JOIN xz USING(x);
 ```
 
-Minimum solution:
+Minimal solution:
 ```sql
-WITH xy(x, y) AS (
-    VALUES
-    (0, 0),
-    (0, 1),
-    (0, 3),
-    (0, 4),
-    (1, 1),
-    (1, 3),
-    (2, 1),
-    (2, 2),
-    (3, 2),
-    (3, 3),
-    (3, 4),
-    (4, 0),
-    (4, 1),
-    (4, 2)
-),
-xz(x, z) AS (
-    VALUES
-    (0, 2),
-    (0, 3),
-    (0, 4),
-    (1, 2),
-    (1, 4),
-    (2, 1),
-    (2, 2),
-    (2, 3),
-    (3, 0),
-    (3, 1),
-    (3, 3),
-    (3, 4),
-    (4, 1),
-    (4, 4)
-)
 SELECT x, y, z FROM (
     SELECT x, y, z,
-    COUNT() OVER (PARTITION BY x,z) as ny,      COUNT() OVER (PARTITION BY x,y) as nz,
-    ROW_NUMBER() OVER (PARTITION BY x,z) as iy, ROW_NUMBER() OVER (PARTITION BY x,y) as iz
+    COUNT() OVER (PARTITION BY x,z) AS ny,
+    COUNT() OVER (PARTITION BY x,y) AS nz,
+    ROW_NUMBER() OVER (PARTITION BY x,z) AS iy,
+    ROW_NUMBER() OVER (PARTITION BY x,y) AS iz
     FROM xy JOIN xz USING(x)
 )
-WHERE (iz-1) % ny == (iy-1) % nz; -- row_number() is 1-indexed
+WHERE (iz-1) % ny == (iy-1) % nz; -- ROW_NUMBER() is 1-indexed
 ```
