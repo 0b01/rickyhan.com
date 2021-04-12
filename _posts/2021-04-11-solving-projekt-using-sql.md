@@ -66,4 +66,4 @@ WHERE (iy-1) % nz == (iz-1) % ny; -- ROW_NUMBER() is 1-indexed
 ```
 This query returns the minimal solution by "ZIP JOIN"ing two cyclic groups partitioned by y and z. First, they are matched pairwise 1-1, 2-2, 3-3 etc.. Then the extra ones from the longer list are wrapped around to the first elements in the shorter list. This can be achieved by index mod length thanks to quotient groups. Note the row_number() window function is 1-indexed so I have to subtract 1.
 
-Also to answer the combinatorics question posed in the original blog post the total number of minimal solutions is `\sum_{x=0}^{n} max(y_x, z_x)` where y_x is the number of y goal blocks in x.
+Also to answer the combinatorics question posed in the original blog post the total number of minimal solutions is `\sum_{i=0}^{n} max(G_{xy}(x), G_{xz}(x))` where G_{xy}(0) is the count of y coordinates for goal blocks in xy where x=0.
